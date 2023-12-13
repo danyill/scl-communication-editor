@@ -1,0 +1,9 @@
+export declare const gooseIcon: import("lit-html").TemplateResult<2>;
+export declare const reportIcon: import("lit-html").TemplateResult<2>;
+export declare const smvIcon: import("lit-html").TemplateResult<2>;
+export declare const goosePublisher: import("lit-html").TemplateResult<2>;
+export declare const reportPublisher: import("lit-html").TemplateResult<2>;
+export declare const smvPublisher: import("lit-html").TemplateResult<2>;
+export declare const gooseInput: import("lit-html").TemplateResult<2>;
+export declare const reportInput: import("lit-html").TemplateResult<2>;
+export declare const smvInput: import("lit-html").TemplateResult<2>;
