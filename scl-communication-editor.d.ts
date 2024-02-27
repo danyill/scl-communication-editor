@@ -29,6 +29,7 @@ type Substation = {
     voltageLevels: Record<string, VoltageLevel>;
     ieds: Record<string, IED>;
 };
+export declare function parseDoc(doc: XMLDocument): Record<string, Substation>;
 export default class CommunicationMappingPlugin extends LitElement {
     _struct: Record<string, Substation>;
     _doc?: XMLDocument;
