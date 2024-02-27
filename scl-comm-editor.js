@@ -18649,8 +18649,8 @@ let JsPlumpDiagram = class JsPlumpDiagram extends s$2 {
           position: absolute;
           width: ${this.gridSize}px;
           height: ${this.gridSize}px;
-          left: ${ied.x ? ied.x * this.gridSize : this.gridSize};
-          top: ${ied.y ? ied.y * this.gridSize : this.gridSize};
+          left: ${ied.x ? ied.x * this.gridSize : this.gridSize}px;
+          top: ${ied.y ? ied.y * this.gridSize : this.gridSize}px;
         }
       </style>
       <label style="position:absolute;">${ied.name}</label>
