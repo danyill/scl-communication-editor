@@ -16,6 +16,7 @@ const connColor: Record<string, string> = {
   Report: '#268bd2',
   SMV: '#d33682',
   GOOSE: '#2aa198',
+  Equipment: '#af2',
 };
 
 export interface IED {
@@ -107,11 +108,44 @@ export default class JsPlumpDiagram extends LitElement {
 
   @state()
   get ieds(): IED[] {
-    return Array.from(this.doc.querySelectorAll(':root > IED')).map(ied => ({
-      name: ied.getAttribute('name')!,
-      x: parseInt(ied.getAttribute('esld:x')!, 10),
-      y: parseInt(ied.getAttribute('esld:y')!, 10),
-    }));
+    return Array.from(this.doc.querySelectorAll(':root > IED')).map(ied => {
+      // use existing coordinates if present
+      if (ied.getAttribute('esld:x'))
+        return {
+          name: ied.getAttribute('name')!,
+          x: parseInt(
+            ied?.getAttribute('esld:x') ?? (Math.random() * 10).toString(),
+            10
+          ),
+          y: parseInt(
+            ied?.getAttribute('esld:y') ?? (Math.random() * 10).toString(),
+            10
+          ),
+        };
+
+      //  else use coordinates from the substatin section
+      const nearestLNode = this.doc.querySelector(
+        `LNode[iedName="${ied.getAttribute('name')}"]`
+      );
+      const nearestCoordinates = nearestLNode
+        ? nearestLNode.closest(
+            'Substation,VoltageLevel,Bay,ConductingEquipment,PowerTransformer'
+          )
+        : undefined;
+      return {
+        name: ied.getAttribute('name')!,
+        x: parseInt(
+          nearestCoordinates?.getAttribute('esld:x') ??
+            (Math.random() * 10).toString(),
+          10
+        ),
+        y: parseInt(
+          nearestCoordinates?.getAttribute('esld:y') ??
+            (Math.random() * 10).toString(),
+          10
+        ),
+      };
+    });
   }
 
   @state()
