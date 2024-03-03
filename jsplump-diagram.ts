@@ -1,11 +1,19 @@
 /* eslint-disable no-return-assign */
-import { css, html, LitElement, TemplateResult } from 'lit';
+import {
+  css,
+  html,
+  LitElement,
+  svg,
+  SVGTemplateResult,
+  TemplateResult,
+} from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
 
 // eslint-disable-next-line import/no-extraneous-dependencies
 import {
   newInstance,
   FlowchartConnector,
+  StraightConnector,
   BrowserJsPlumbInstance,
   EVENT_DRAG_STOP,
 } from '@jsplumb/browser-ui';
@@ -16,10 +24,10 @@ const connColor: Record<string, string> = {
   Report: '#268bd2',
   SMV: '#d33682',
   GOOSE: '#2aa198',
-  Equipment: '#af2',
+  Equipment: 'DodgerBlue',
 };
 
-export interface IED {
+export interface GridObject {
   name: string;
   x?: number;
   y?: number;
@@ -95,6 +103,31 @@ function parseExtRefs(doc?: XMLDocument): Link[] {
   });
 }
 
+function makeId(id: string): string {
+  return `${id}`.replace(/[- >]/g, '_');
+}
+
+function parseEquipment(doc: XMLDocument): Link[] {
+  const uniqueItems: string[] = [];
+  return Array.from(
+    doc.querySelectorAll('ConductingEquipment LNode, PowerTransformer LNode')
+  )
+    .filter(lNode => lNode.getAttribute('iedName'))
+    .map(lNode => {
+      const equipment = lNode.closest('ConductingEquipment, PowerTransformer')!;
+      return {
+        source: makeId(`${identity(equipment)}`),
+        sink: makeId(lNode.getAttribute('iedName')!),
+        type: 'Equipment',
+      };
+    })
+    .filter(ce => {
+      const alreadyExisting = !uniqueItems.includes(ce.source);
+      uniqueItems.push(ce.source);
+      return alreadyExisting;
+    });
+}
+
 @customElement('jsplump-diagram')
 export default class JsPlumpDiagram extends LitElement {
   @property({ attribute: false })
@@ -107,7 +140,33 @@ export default class JsPlumpDiagram extends LitElement {
   gridSize = defaultGridSize;
 
   @state()
-  get ieds(): IED[] {
+  get equipments(): GridObject[] {
+    const uniqueItems: string[] = [];
+    return Array.from(
+      this.doc.querySelectorAll(
+        'ConductingEquipment LNode, PowerTransformer LNode'
+      )
+    )
+      .filter(lNode => lNode.getAttribute('iedName'))
+      .map(lNode => {
+        const equipment = lNode.closest(
+          'ConductingEquipment, PowerTransformer'
+        )!;
+        return {
+          name: makeId(`${identity(equipment)}`),
+          x: parseInt(equipment.getAttribute('esld:x') ?? '10', 10),
+          y: parseInt(equipment.getAttribute('esld:y') ?? '10', 10),
+        };
+      })
+      .filter(equip => {
+        const alreadyExisting = !uniqueItems.includes(equip.name);
+        uniqueItems.push(equip.name);
+        return alreadyExisting;
+      });
+  }
+
+  @state()
+  get ieds(): GridObject[] {
     return Array.from(this.doc.querySelectorAll(':root > IED')).map(ied => {
       // use existing coordinates if present
       if (ied.getAttribute('esld:x'))
@@ -150,7 +209,11 @@ export default class JsPlumpDiagram extends LitElement {
 
   @state()
   get links(): Link[] {
-    return [...parseExtRefs(this.doc), ...parseClientLns(this.doc)];
+    return [
+      ...parseExtRefs(this.doc),
+      ...parseClientLns(this.doc),
+      ...parseEquipment(this.doc),
+    ];
   }
 
   instance?: BrowserJsPlumbInstance;
@@ -223,9 +286,16 @@ export default class JsPlumpDiagram extends LitElement {
       this.instance!.connect({
         source: this.element(link.source),
         target: this.element(link.sink),
-        anchor: 'ContinuousTopBottom',
+        // ideally would use object rotation to define these to avoid equipment overlaps
+        anchor:
+          link.type === 'Equipment'
+            ? 'ContinuousLeftRight'
+            : 'ContinuousTopBottom',
         connector: {
-          type: FlowchartConnector.type,
+          type:
+            link.type === 'Equipment'
+              ? StraightConnector.type
+              : FlowchartConnector.type,
           options: { cornerRadius: 4 },
         },
         detachable: false,
@@ -251,7 +321,7 @@ export default class JsPlumpDiagram extends LitElement {
   }
 
   // eslint-disable-next-line class-methods-use-this
-  renderIED(ied: IED): TemplateResult {
+  renderIED(ied: GridObject): TemplateResult {
     this.latestX += this.gridSize;
 
     // eslint-disable-next-line lit-a11y/click-events-have-key-events
@@ -275,8 +345,30 @@ export default class JsPlumpDiagram extends LitElement {
     </div>`;
   }
 
+  // eslint-disable-next-line class-methods-use-this
+  renderEquipment(equip: GridObject): SVGTemplateResult {
+    // eslint-disable-next-line lit-a11y/click-events-have-key-events
+    return svg`<rect
+      id="${equip.name}"
+      x="${equip.x! * this.gridSize - this.gridSize * 0}px" 
+      y="${equip.y! * this.gridSize + this.gridSize * 1.6}px"
+      height="${this.gridSize}px" width="${
+      this.gridSize
+    }px" stroke-linecap="round" stroke-width="2" stroke-dasharray="5,5" fill="none" stroke="DodgerBlue"
+      />`;
+  }
+
   render() {
-    return html`<div id="container">
+    return html` <div id="container">
+      <svg
+        id="container2"
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 2240 1600"
+        width="2240"
+        height="1600"
+      >
+        ${this.equipments.map(equip => this.renderEquipment(equip))}
+      </svg>
       ${this.ieds.map(ied => this.renderIED(ied))}
     </div>`;
   }
@@ -286,6 +378,12 @@ export default class JsPlumpDiagram extends LitElement {
       position: absolute;
       width: 100%;
       height: 100%;
+    }
+
+    #container2 {
+      position: absolute;
+      left: 0;
+      top: 0;
     }
 
     .bayContainer {
