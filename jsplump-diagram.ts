@@ -24,13 +24,14 @@ const connColor: Record<string, string> = {
   Report: '#268bd2',
   SMV: '#d33682',
   GOOSE: '#2aa198',
-  Equipment: 'DodgerBlue',
+  Equipment: 'grey',
 };
 
 export interface GridObject {
   name: string;
   x?: number;
   y?: number;
+  iedName?: string;
 }
 
 export interface Link {
@@ -107,6 +108,7 @@ function makeId(id: string): string {
   return `${id}`.replace(/[- >]/g, '_');
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function parseEquipment(doc: XMLDocument): Link[] {
   const uniqueItems: string[] = [];
   return Array.from(
@@ -156,6 +158,7 @@ export default class JsPlumpDiagram extends LitElement {
           name: makeId(`${identity(equipment)}`),
           x: parseInt(equipment.getAttribute('esld:x') ?? '10', 10),
           y: parseInt(equipment.getAttribute('esld:y') ?? '10', 10),
+          iedName: lNode.getAttribute('iedName') ?? 'Unknown',
         };
       })
       .filter(equip => {
@@ -209,11 +212,10 @@ export default class JsPlumpDiagram extends LitElement {
 
   @state()
   get links(): Link[] {
-    return [
-      ...parseExtRefs(this.doc),
-      ...parseClientLns(this.doc),
-      ...parseEquipment(this.doc),
-    ];
+    return [...parseExtRefs(this.doc), ...parseClientLns(this.doc)];
+
+    // Removed to avoid equipment lines
+    // ...parseEquipment(this.doc),
   }
 
   instance?: BrowserJsPlumbInstance;
@@ -228,6 +230,14 @@ export default class JsPlumpDiagram extends LitElement {
   }
 
   protected selectIed(ied: string): void {
+    Array.from(this.divRef.querySelectorAll('.lnode')!).forEach(member => {
+      if (member.classList.contains(ied)) {
+        member.classList.add('animate');
+      } else {
+        member.classList.remove('animate');
+      }
+    });
+
     this.instance!.select().each(conn => {
       conn.setVisible(true);
     });
@@ -283,6 +293,7 @@ export default class JsPlumpDiagram extends LitElement {
     });
 
     this.links.forEach(link => {
+      // console.log(link.sink);
       this.instance!.connect({
         source: this.element(link.source),
         target: this.element(link.sink),
@@ -347,19 +358,19 @@ export default class JsPlumpDiagram extends LitElement {
 
   // eslint-disable-next-line class-methods-use-this
   renderEquipment(equip: GridObject): SVGTemplateResult {
-    // eslint-disable-next-line lit-a11y/click-events-have-key-events
     return svg`<rect
       id="${equip.name}"
-      x="${equip.x! * this.gridSize - this.gridSize * 0}px" 
+      class="lnode ${equip.iedName}"
+      x="${equip.x! * this.gridSize - this.gridSize * 0}px"
       y="${equip.y! * this.gridSize + this.gridSize * 1.6}px"
       height="${this.gridSize}px" width="${
       this.gridSize
-    }px" stroke-linecap="round" stroke-width="2" stroke-dasharray="5,5" fill="none" stroke="DodgerBlue"
+    }px" stroke-linecap="round" stroke-width="2" stroke-dasharray="2,3,5" fill="none" stroke="DodgerBlue"
       />`;
   }
 
   render() {
-    return html` <div id="container">
+    return html`<div id="container">
       <svg
         id="container2"
         xmlns="http://www.w3.org/2000/svg"
@@ -397,6 +408,20 @@ export default class JsPlumpDiagram extends LitElement {
 
     .connector-hover {
       z-index: 10;
+    }
+
+    .lnode {
+      stroke-dasharray: 8;
+    }
+
+    .animate {
+      animation: dash 30s linear infinite;
+    }
+
+    @keyframes dash {
+      to {
+        stroke-dashoffset: 1000;
+      }
     }
   `;
 }
