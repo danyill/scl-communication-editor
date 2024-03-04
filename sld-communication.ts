@@ -22,6 +22,8 @@ export interface IED {
   name: string;
   x?: number;
   y?: number;
+  labelx?: number;
+  labely?: number;
 }
 
 export interface Link {
@@ -94,8 +96,8 @@ function parseExtRefs(doc?: XMLDocument): Link[] {
   });
 }
 
-@customElement('jsplump-diagram')
-export default class JsPlumpDiagram extends LitElement {
+@customElement('sld-communication')
+export default class SclCommunication extends LitElement {
   @property({ attribute: false })
   doc!: XMLDocument;
 
@@ -109,8 +111,30 @@ export default class JsPlumpDiagram extends LitElement {
   get ieds(): IED[] {
     return Array.from(this.doc.querySelectorAll(':root > IED')).map(ied => ({
       name: ied.getAttribute('name')!,
-      x: parseInt(ied.getAttribute('esld:x')!, 10),
-      y: parseInt(ied.getAttribute('esld:y')!, 10),
+      x: parseInt(
+        ied
+          .querySelector('Private[type="sld-attributes"]')
+          ?.getAttribute('esld:x') ?? '0',
+        10
+      ),
+      y: parseInt(
+        ied
+          .querySelector('Private[type="sld-attributes"]')
+          ?.getAttribute('esld:y') ?? '0',
+        10
+      ),
+      labelx: parseInt(
+        ied
+          .querySelector('Private[type="sld-attributes"]')
+          ?.getAttribute('esld:lx') ?? '0',
+        10
+      ),
+      labely: parseInt(
+        ied
+          .querySelector('Private[type="sld-attributes"]')
+          ?.getAttribute('esld:ly') ?? '0',
+        10
+      ),
     }));
   }
 
@@ -119,10 +143,10 @@ export default class JsPlumpDiagram extends LitElement {
     return [...parseExtRefs(this.doc), ...parseClientLns(this.doc)];
   }
 
-  instance?: BrowserJsPlumbInstance;
-
   @state()
-  latestX: number = 32;
+  selectedIed?: IED;
+
+  instance?: BrowserJsPlumbInstance;
 
   @query(`#container`) divRef!: HTMLDivElement;
 
@@ -130,18 +154,39 @@ export default class JsPlumpDiagram extends LitElement {
     return this.divRef.querySelector(`#${id}`)!;
   }
 
-  protected selectIed(ied: string): void {
+  protected deselectIed(): void {
     this.instance!.select().each(conn => {
       conn.setVisible(true);
     });
-    this.instance!.select().each(conn => {
-      if (
-        !(
-          conn.source === this.element(ied) || conn.target === this.element(ied)
+  }
+
+  protected selectIed(ied: IED): void {
+    this.deselectIed();
+
+    if (!this.selectedIed) {
+      this.selectedIed = ied;
+      this.instance!.select().each(conn => {
+        if (
+          !(
+            conn.source === this.element(ied.name) ||
+            conn.target === this.element(ied.name)
+          )
         )
-      )
-        conn.setVisible(false);
-    });
+          conn.setVisible(false);
+      });
+    } else if (this.selectedIed.name !== ied.name) {
+      this.selectedIed = ied;
+
+      this.instance!.select().each(conn => {
+        if (
+          !(
+            conn.source === this.element(ied.name) ||
+            conn.target === this.element(ied.name)
+          )
+        )
+          conn.setVisible(false);
+      });
+    } else this.selectedIed = undefined;
   }
 
   protected updated(): void {
@@ -151,9 +196,7 @@ export default class JsPlumpDiagram extends LitElement {
   protected firstUpdated(): void {
     this.instance = newInstance({
       container: this.divRef,
-      dragOptions: {
-        grid: { w: 25, h: 25 },
-      },
+      elementsDraggable: false,
     });
 
     this.instance.bind(EVENT_DRAG_STOP, p => {
@@ -216,25 +259,46 @@ export default class JsPlumpDiagram extends LitElement {
     });
   }
 
+  coordinate(ied: IED, type: 'x' | 'y' | 'labelx' | 'labely'): string {
+    if (type === 'x')
+      return `${ied.x ? ied.x * this.gridSize : this.gridSize}px`;
+    if (type === 'y')
+      return `${ied.y ? ied.y * this.gridSize : this.gridSize}px`;
+    if (type === 'labelx')
+      return `${
+        ied.x && ied.labelx
+          ? (ied.labelx - ied.x) * this.gridSize
+          : this.gridSize
+      }px`;
+
+    return `${
+      ied.y && ied.labely ? (ied.labely - ied.y) * this.gridSize : this.gridSize
+    }px`;
+  }
+
   // eslint-disable-next-line class-methods-use-this
   renderIED(ied: IED): TemplateResult {
-    this.latestX += this.gridSize;
-
     // eslint-disable-next-line lit-a11y/click-events-have-key-events
     return html`<div
+      draggable="false"
       id="${ied.name}"
-      @click="${() => this.selectIed(ied.name)}"
+      style="position: absolute; width: ${this.gridSize}px; height: ${this
+        .gridSize}px; left: ${this.coordinate(
+        ied,
+        'x'
+      )}; top: ${this.coordinate(ied, 'y')}"
+      @click="${(evt: Event) => {
+        this.selectIed(ied);
+        evt.stopPropagation();
+      }}"
     >
-      <style>
-        #${ied.name} {
-          position: absolute;
-          width: ${this.gridSize}px;
-          height: ${this.gridSize}px;
-          left: ${ied.x ? ied.x * this.gridSize : this.gridSize}px;
-          top: ${ied.y ? ied.y * this.gridSize : this.gridSize}px;
-        }
-      </style>
-      <label style="position:absolute;">${ied.name}</label>
+      <label
+        style="position:absolute; left:${this.coordinate(
+          ied,
+          'labelx'
+        )}; top:${this.coordinate(ied, 'labely')};"
+        >${ied.name}</label
+      >
       <mwc-icon style="--mdc-icon-size: ${this.gridSize}px;"
         >developer_board</mwc-icon
       >
@@ -242,6 +306,7 @@ export default class JsPlumpDiagram extends LitElement {
   }
 
   render() {
+    // eslint-disable-next-line lit-a11y/click-events-have-key-events
     return html`<div id="container">
       ${this.ieds.map(ied => this.renderIED(ied))}
     </div>`;
