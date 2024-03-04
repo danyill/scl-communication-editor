@@ -1,5 +1,5 @@
 /* eslint-disable no-return-assign */
-import { css, html, LitElement, TemplateResult } from 'lit';
+import { css, html, LitElement, PropertyValueMap, TemplateResult } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
 
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -107,6 +107,15 @@ export default class SclCommunication extends LitElement {
   @property({ attribute: false })
   gridSize = defaultGridSize;
 
+  @property({ attribute: false })
+  private report = true;
+
+  @property({ attribute: false })
+  private goose = true;
+
+  @property({ attribute: false })
+  private smv = true;
+
   @state()
   get ieds(): IED[] {
     return Array.from(this.doc.querySelectorAll(':root > IED')).map(ied => ({
@@ -154,43 +163,46 @@ export default class SclCommunication extends LitElement {
     return this.divRef.querySelector(`#${id}`)!;
   }
 
-  protected deselectIed(): void {
+  protected undoFilter(): void {
     this.instance!.select().each(conn => {
       conn.setVisible(true);
     });
   }
 
   protected selectIed(ied: IED): void {
-    this.deselectIed();
-
-    if (!this.selectedIed) {
+    if (!this.selectedIed || this.selectedIed.name !== ied.name) {
       this.selectedIed = ied;
-      this.instance!.select().each(conn => {
-        if (
-          !(
-            conn.source === this.element(ied.name) ||
-            conn.target === this.element(ied.name)
-          )
-        )
-          conn.setVisible(false);
-      });
-    } else if (this.selectedIed.name !== ied.name) {
-      this.selectedIed = ied;
-
-      this.instance!.select().each(conn => {
-        if (
-          !(
-            conn.source === this.element(ied.name) ||
-            conn.target === this.element(ied.name)
-          )
-        )
-          conn.setVisible(false);
-      });
     } else this.selectedIed = undefined;
   }
 
-  protected updated(): void {
-    if (this.instance) this.instance.setZoom(this.gridSize / defaultGridSize);
+  protected updated(
+    _changedProperties: PropertyValueMap<any> | Map<PropertyKey, unknown>
+  ): void {
+    if (_changedProperties.has(this.gridSize) && this.instance) {
+      this.instance.setZoom(this.gridSize / defaultGridSize);
+      return;
+    }
+
+    this.undoFilter();
+    if (this.instance)
+      this.instance.select().each(conn => {
+        if (!this.selectedIed) {
+          if (!this.report && conn.scope === 'Report') conn.setVisible(false);
+          if (!this.goose && conn.scope === 'GOOSE') conn.setVisible(false);
+          if (!this.smv && conn.scope === 'SMV') conn.setVisible(false);
+        } else if (
+          !(
+            conn.target === this.element(this.selectedIed.name) ||
+            conn.source === this.element(this.selectedIed.name)
+          )
+        ) {
+          conn.setVisible(false);
+        } else {
+          if (!this.report && conn.scope === 'Report') conn.setVisible(false);
+          if (!this.goose && conn.scope === 'GOOSE') conn.setVisible(false);
+          if (!this.smv && conn.scope === 'SMV') conn.setVisible(false);
+        }
+      });
   }
 
   protected firstUpdated(): void {
@@ -230,6 +242,7 @@ export default class SclCommunication extends LitElement {
 
     this.links.forEach(link => {
       this.instance!.connect({
+        scope: link.type,
         source: this.element(link.source),
         target: this.element(link.sink),
         anchor: 'ContinuousTopBottom',
