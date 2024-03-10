@@ -1,13 +1,31 @@
 /* eslint-disable class-methods-use-this */
 /* eslint-disable import/no-extraneous-dependencies */
 import { css, html, LitElement } from 'lit';
-import { property, state } from 'lit/decorators.js';
+import { property, query, state } from 'lit/decorators.js';
 
 import '@material/mwc-checkbox';
 import '@material/mwc-formfield';
 import '@material/mwc-fab';
+import '@material/mwc-icon-button';
+
+import { find } from '@openenergytools/scl-lib';
 
 import './sld-communication.js';
+import './editors/data-set-element-editor.js';
+import './editors/gse-control-element-editor.js';
+import './editors/report-control-element-editor.js';
+import './editors/sampled-value-control-element-editor.js';
+import type { DataSetElementEditor } from './editors/data-set-element-editor.js';
+import type { GseControlElementEditor } from './editors/gse-control-element-editor.js';
+import type { ReportControlElementEditor } from './editors/report-control-element-editor.js';
+import type { SampledValueControlElementEditor } from './editors/sampled-value-control-element-editor.js';
+
+export type ConnectClick = {
+  tag: string;
+  id: string;
+};
+
+export type ConnectedClickEvent = CustomEvent<ConnectClick>;
 
 export default class SclCommunicationEditor extends LitElement {
   @property({ attribute: false })
@@ -38,10 +56,84 @@ export default class SclCommunicationEditor extends LitElement {
   @state()
   private smv = true;
 
+  @query('.sidebar.left') leftSidebar!: HTMLDivElement;
+
+  @query('report-control-element-editor')
+  reportEditor!: ReportControlElementEditor;
+
+  @query('gse-control-element-editor')
+  gseControlEditor!: GseControlElementEditor;
+
+  @query('sampled-value-control-element-editor')
+  smvControlEditor!: SampledValueControlElementEditor;
+
+  @query('data-set-element-editor')
+  dataSetEditor!: DataSetElementEditor;
+
+  setSmvControl(id: string): void {
+    const smvControl = find(this.doc, 'SampledValueControl', id);
+
+    if (smvControl) {
+      this.smvControlEditor.element = smvControl;
+      const dataSet =
+        smvControl.parentElement?.querySelector(
+          `DataSet[name="${smvControl.getAttribute('datSet')}"]`
+        ) ?? null;
+      this.dataSetEditor.element = dataSet;
+    } else {
+      this.smvControlEditor.element = null;
+      this.dataSetEditor.element = null;
+    }
+    this.reportEditor.classList.add('hide');
+    this.gseControlEditor.classList.add('hide');
+    this.smvControlEditor.classList.remove('hide');
+    this.leftSidebar.classList.remove('is-closed');
+  }
+
+  setGseControl(id: string): void {
+    const gseControl = find(this.doc, 'GSEControl', id);
+
+    if (gseControl) {
+      this.gseControlEditor.element = gseControl;
+      const dataSet =
+        gseControl.parentElement?.querySelector(
+          `DataSet[name="${gseControl.getAttribute('datSet')}"]`
+        ) ?? null;
+      this.dataSetEditor.element = dataSet;
+    } else {
+      this.gseControlEditor.element = null;
+      this.dataSetEditor.element = null;
+    }
+    this.reportEditor.classList.add('hide');
+    this.gseControlEditor.classList.remove('hide');
+    this.smvControlEditor.classList.add('hide');
+    this.leftSidebar.classList.remove('is-closed');
+  }
+
+  setReport(id: string): void {
+    const report = find(this.doc, 'ReportControl', id);
+
+    if (report) {
+      this.reportEditor.element = report;
+      const dataSet =
+        report.parentElement?.querySelector(
+          `DataSet[name="${report.getAttribute('datSet')}"]`
+        ) ?? null;
+      this.dataSetEditor.element = dataSet;
+    } else {
+      this.reportEditor.element = undefined;
+      this.dataSetEditor.element = null;
+    }
+    this.reportEditor.classList.remove('hide');
+    this.gseControlEditor.classList.add('hide');
+    this.smvControlEditor.classList.add('hide');
+    this.leftSidebar.classList.remove('is-closed');
+  }
+
   render() {
     if (!this.doc) return html``;
 
-    return html`<div class="service-selector">
+    return html` <div class="service-selector">
         <mwc-formfield label="Report"
           ><mwc-checkbox
             value="Report"
@@ -70,12 +162,37 @@ export default class SclCommunicationEditor extends LitElement {
           ></mwc-checkbox
         ></mwc-formfield>
       </div>
+      <div class="sidebar left is-closed">
+        <mwc-icon-button
+          icon="close"
+          @click="${() => this.leftSidebar.classList.add('is-closed')}"
+        ></mwc-icon-button>
+        <report-control-element-editor
+          .editCount=${this.editCount}
+        ></report-control-element-editor>
+        <gse-control-element-editor
+          .editCount=${this.editCount}
+        ></gse-control-element-editor>
+        <sampled-value-control-element-editor
+          .editCount=${this.editCount}
+        ></sampled-value-control-element-editor>
+        <data-set-element-editor
+          .editCount=${this.editCount}
+        ></data-set-element-editor>
+      </div>
       <sld-communication
         .doc=${this.doc}
         .gridSize=${this.gridSize}
         .report=${this.report}
         .goose=${this.goose}
         .smv=${this.smv}
+        @connection-click="${(evt: ConnectedClickEvent) => {
+          if (evt.detail.tag === 'ReportControl') this.setReport(evt.detail.id);
+          if (evt.detail.tag === 'GSEControl')
+            this.setGseControl(evt.detail.id);
+          if (evt.detail.tag === 'SampledValueControl')
+            this.setSmvControl(evt.detail.id);
+        }}"
       ></sld-communication>
       <mwc-fab
         icon="zoom_in"
@@ -118,6 +235,28 @@ export default class SclCommunicationEditor extends LitElement {
 
     mwc-fab[icon='zoom_in'] {
       left: 120px;
+    }
+
+    .hide {
+      display: none;
+    }
+
+    .sidebar.left {
+      position: absolute;
+      padding: 5px;
+      top: 0;
+      left: 0;
+      width: 500px;
+      height: 100vh;
+      background-color: white;
+      border: 3px black solid;
+      transition: 0.7s;
+      z-index: 9;
+      overflow-y: scroll;
+
+      &.is-closed {
+        transform: translateX(-516px);
+      }
     }
   `;
 }

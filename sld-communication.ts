@@ -7,9 +7,8 @@ import {
   newInstance,
   FlowchartConnector,
   BrowserJsPlumbInstance,
-  EVENT_DRAG_STOP,
+  EVENT_CONNECTION_CLICK,
 } from '@jsplumb/browser-ui';
-import { newEditEvent } from '@openscd/open-scd-core';
 import { identity } from '@openenergytools/scl-lib';
 import { sldSvg } from './sldSvg.js';
 
@@ -28,12 +27,13 @@ export interface IED {
 }
 
 export interface Link {
+  sourceid: string;
+  targetid: string;
   sink: string;
   source: string;
   type?: string;
 }
 
-const nsp = 'esld';
 const sldNs = 'https://transpower.co.nz/SCL/SSD/SLD/v0';
 
 const defaultGridSize = 32;
@@ -48,18 +48,20 @@ function parseClientLns(doc: XMLDocument): Link[] {
   return Array.from(
     doc.querySelectorAll('ReportControl > RptEnabled > ClientLN')
   ).map(clientLn => {
+    const sourceid = `${identity(clientLn.closest('ReportControl'))}`;
+    const targetid = `${identity(clientLn)}`;
     const source = clientLn.closest('IED')?.getAttribute('name')!;
     const sink = clientLn.getAttribute('iedName')!;
     const type = 'Report';
 
-    return { source, sink, type };
+    return { sourceid, targetid, source, sink, type };
   });
 }
 
 function parseExtRefs(doc?: XMLDocument): Link[] {
   const links: Record<
     string,
-    { source: Element; sink: Element; service?: Element }
+    { source: Element; sinkIed: Element; service?: Element }
   > = {};
   Array.from(doc?.querySelectorAll('ExtRef') ?? []).forEach(extRef => {
     const [iedName, srcLDInst, srcLNClass, srcLNInst, srcCBName] = [
@@ -81,19 +83,20 @@ function parseExtRefs(doc?: XMLDocument): Link[] {
 
     if (sink && source && service) {
       const id = `${identity(sink)}${identity(source)}${identity(service)}`;
-      if (!links[id]) links[id] = { source, sink, service };
+      if (!links[id]) links[id] = { source, sinkIed: sink, service };
     } else if (sink && source) {
       const id = `${identity(sink)}${identity(source)}}`;
-      if (!links[id]) links[id] = { source, sink };
+      if (!links[id]) links[id] = { source, sinkIed: sink };
     }
   });
 
   return Object.values(links).map(link => {
+    const sourceid = link.service ? `${identity(link.service)}` : '';
     const source = link.source.getAttribute('name')!;
-    const sink = link.sink.getAttribute('name')!;
+    const sink = link.sinkIed.getAttribute('name')!;
     const type = link.service ? types[link.service.tagName] : undefined;
 
-    return { source, sink, type };
+    return { sourceid, targetid: '', source, sink, type };
   });
 }
 
@@ -242,37 +245,33 @@ export default class SclCommunication extends LitElement {
       elementsDraggable: false,
     });
 
-    this.instance.bind(EVENT_DRAG_STOP, p => {
-      const iedName = p.elements[0].el.id;
-      const ied = this.doc.querySelector(`:root > IED[name="${iedName}"]`)!;
-      const newX = p.elements[0].pos.x / this.gridSize;
-      const newY = p.elements[0].pos.y / this.gridSize;
+    this.instance.bind(EVENT_CONNECTION_CLICK, p => {
+      let tag: string = '';
 
-      const updateX = {
-        element: ied,
-        attributes: {
-          [`${nsp}:x`]: {
-            namespaceURI: sldNs,
-            value: `${newX}`,
+      if (p.scope === 'Report') {
+        tag = 'ReportControl';
+      } else if (p.scope === 'GOOSE') {
+        tag = 'GSEControl';
+      } else if (p.scope === 'SMV') {
+        tag = 'SampledValueControl';
+      }
+
+      this.dispatchEvent(
+        new CustomEvent('connection-click', {
+          detail: {
+            tag,
+            id: p.data.sourceid,
           },
-        },
-      };
-
-      const updateY = {
-        element: ied,
-        attributes: {
-          [`${nsp}:y`]: {
-            namespaceURI: sldNs,
-            value: `${newY}`,
-          },
-        },
-      };
-
-      this.dispatchEvent(newEditEvent([updateX, updateY]));
+        })
+      );
     });
 
     this.links.forEach(link => {
       this.instance!.connect({
+        data: {
+          sourceid: link.sourceid,
+          targetid: link.targetid,
+        },
         scope: link.type,
         source: this.element(link.source),
         target: this.element(link.sink),
