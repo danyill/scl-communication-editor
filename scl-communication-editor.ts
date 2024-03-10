@@ -8,7 +8,6 @@ import '@material/mwc-formfield';
 import '@material/mwc-fab';
 
 import './sld-communication.js';
-import './sld-editor.js';
 
 export default class SclCommunicationEditor extends LitElement {
   @property({ attribute: false })
@@ -71,11 +70,6 @@ export default class SclCommunicationEditor extends LitElement {
           ></mwc-checkbox
         ></mwc-formfield>
       </div>
-      <sld-editor
-        .doc=${this.doc}
-        .substation=${this.doc.querySelector('Substation')!}
-        .gridSize=${this.gridSize}
-      ></sld-editor>
       <sld-communication
         .doc=${this.doc}
         .gridSize=${this.gridSize}

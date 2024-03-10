@@ -10,9 +10,21 @@
   ],
   "editor": 
   [
+    {"name": "SLD", "translations": {"de": "DESB"}, "icon": "publish", "active": true, "src": "https://openenergytools.github.io/oscd-designer/oscd-designer.js"},
     {"name": "Communication Editor", "translations": {"de": "Übersicht Kommunikation"}, "icon": "publish", "active": true, "src": "/dist/scl-communication-editor.js"}
   ]
 }'></open-scd>
+
+<script>
+  const _customElementsDefine = window.customElements.define;
+  window.customElements.define = (name, cl, conf) => {
+    if (!customElements.get(name)) {
+      try {
+        _customElementsDefine.call(window.customElements, name, cl, conf);
+      } catch (e) { console.warn(e); }
+    }
+  };
+</script>
 
 <script type="module">
 import '@openscd/open-scd-core/open-scd.js';

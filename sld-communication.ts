@@ -11,6 +11,7 @@ import {
 } from '@jsplumb/browser-ui';
 import { newEditEvent } from '@openscd/open-scd-core';
 import { identity } from '@openenergytools/scl-lib';
+import { sldSvg } from './sldSvg.js';
 
 const connColor: Record<string, string> = {
   Report: '#268bd2',
@@ -96,6 +97,16 @@ function parseExtRefs(doc?: XMLDocument): Link[] {
   });
 }
 
+function linkedEquipment(
+  substation: Element,
+  iedName: string
+): (string | number)[] {
+  return Array.from(substation.querySelectorAll(`LNode[iedName="${iedName}"]`))
+    .map(lNode => lNode.closest('ConductingEquipment'))
+    .filter(condEq => condEq)
+    .map(condEq => identity(condEq));
+}
+
 @customElement('sld-communication')
 export default class SclCommunication extends LitElement {
   @property({ attribute: false })
@@ -108,42 +119,33 @@ export default class SclCommunication extends LitElement {
   gridSize = defaultGridSize;
 
   @property({ attribute: false })
-  private report = true;
+  report = true;
 
   @property({ attribute: false })
-  private goose = true;
+  goose = true;
 
   @property({ attribute: false })
-  private smv = true;
+  smv = true;
+
+  @property({ type: Boolean })
+  showLabel = false;
+
+  @property({ type: Boolean })
+  hideIedName = false;
+
+  @state()
+  get substation(): Element | null {
+    return this.doc.querySelector(':root > Substation');
+  }
 
   @state()
   get ieds(): IED[] {
     return Array.from(this.doc.querySelectorAll(':root > IED')).map(ied => ({
       name: ied.getAttribute('name')!,
-      x: parseInt(
-        ied
-          .querySelector('Private[type="sld-attributes"]')
-          ?.getAttribute('esld:x') ?? '0',
-        10
-      ),
-      y: parseInt(
-        ied
-          .querySelector('Private[type="sld-attributes"]')
-          ?.getAttribute('esld:y') ?? '0',
-        10
-      ),
-      labelx: parseInt(
-        ied
-          .querySelector('Private[type="sld-attributes"]')
-          ?.getAttribute('esld:lx') ?? '0',
-        10
-      ),
-      labely: parseInt(
-        ied
-          .querySelector('Private[type="sld-attributes"]')
-          ?.getAttribute('esld:ly') ?? '0',
-        10
-      ),
+      x: parseInt(ied.getAttributeNS(sldNs, 'x') ?? '0', 10),
+      y: parseInt(ied.getAttributeNS(sldNs, 'y') ?? '0', 10),
+      labelx: parseInt(ied.getAttributeNS(sldNs, 'lx') ?? '0', 10),
+      labely: parseInt(ied.getAttributeNS(sldNs, 'ly') ?? '0', 10),
     }));
   }
 
@@ -157,16 +159,22 @@ export default class SclCommunication extends LitElement {
 
   instance?: BrowserJsPlumbInstance;
 
-  @query(`#container`) divRef!: HTMLDivElement;
+  @query(`#container`) ref!: HTMLDivElement;
+
+  @query(`svg`) sld!: SVGElement;
 
   private element(id: string): Element {
-    return this.divRef.querySelector(`#${id}`)!;
+    return this.ref.querySelector(`#IED${id}`)!;
   }
 
   protected undoFilter(): void {
     this.instance!.select().each(conn => {
       conn.setVisible(true);
     });
+
+    this.sld
+      .querySelectorAll('*')
+      .forEach(sldElem => sldElem.classList.remove('highlighted'));
   }
 
   protected selectIed(ied: IED): void {
@@ -203,11 +211,34 @@ export default class SclCommunication extends LitElement {
           if (!this.smv && conn.scope === 'SMV') conn.setVisible(false);
         }
       });
+
+    if (this.substation && this.selectedIed)
+      linkedEquipment(this.substation, this.selectedIed.name).forEach(id =>
+        this.sld.querySelector(`g[id="${id}"]`)?.classList.add('highlighted')
+      );
+
+    if (!this.showLabel)
+      this.sld
+        .querySelectorAll('g.label')
+        .forEach(g => g.classList.add('hide'));
+    else
+      this.sld
+        .querySelectorAll('g.label')
+        .forEach(g => g.classList.remove('hide'));
+
+    if (this.hideIedName)
+      this.sld
+        .querySelectorAll('g.label.ied')
+        .forEach(g => g.classList.add('hide'));
+    else
+      this.sld
+        .querySelectorAll('g.label.ied')
+        .forEach(g => g.classList.remove('hide'));
   }
 
   protected firstUpdated(): void {
     this.instance = newInstance({
-      container: this.divRef,
+      container: this.ref,
       elementsDraggable: false,
     });
 
@@ -293,8 +324,7 @@ export default class SclCommunication extends LitElement {
   renderIED(ied: IED): TemplateResult {
     // eslint-disable-next-line lit-a11y/click-events-have-key-events
     return html`<div
-      draggable="false"
-      id="${ied.name}"
+      id="IED${ied.name}"
       style="position: absolute; width: ${this.gridSize}px; height: ${this
         .gridSize}px; left: ${this.coordinate(
         ied,
@@ -305,13 +335,6 @@ export default class SclCommunication extends LitElement {
         evt.stopPropagation();
       }}"
     >
-      <label
-        style="position:absolute; left:${this.coordinate(
-          ied,
-          'labelx'
-        )}; top:${this.coordinate(ied, 'labely')};"
-        >${ied.name}</label
-      >
       <mwc-icon style="--mdc-icon-size: ${this.gridSize}px;"
         >developer_board</mwc-icon
       >
@@ -319,8 +342,11 @@ export default class SclCommunication extends LitElement {
   }
 
   render() {
-    // eslint-disable-next-line lit-a11y/click-events-have-key-events
+    const { substation } = this;
+    if (!substation) return html``;
+
     return html`<div id="container">
+      ${sldSvg(substation, this.gridSize)}
       ${this.ieds.map(ied => this.renderIED(ied))}
     </div>`;
   }
@@ -343,6 +369,22 @@ export default class SclCommunication extends LitElement {
 
     .connector-hover {
       z-index: 10;
+    }
+
+    g.node,
+    g.transformer,
+    g.equipment {
+      opacity: 0.3;
+    }
+
+    .highlighted {
+      opacity: 1 !important;
+      stroke: black;
+      stroke-dasharray: 0.1;
+    }
+
+    .hide {
+      display: none;
     }
   `;
 }

@@ -611,6 +611,10 @@ if (!navigator.userAgent.toLowerCase().includes('firefox')) {
   xsltProcessor.importStylesheet(prettifyXSLT);
 }
 
+export function hasIedCoordinates(ied: Element): boolean {
+  return !!(ied.getAttributeNS(sldNs, 'x') && ied.getAttributeNS(sldNs, 'y'));
+}
+
 export function prettyPrint(xmlDoc: XMLDocument | Element): string {
   const doc = xsltProcessor
     ? xsltProcessor.transformToDocument(xmlDoc)
