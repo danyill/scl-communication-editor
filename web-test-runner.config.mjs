@@ -71,7 +71,7 @@ export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
     }),
   ],
 
-  files: 'dist/**/*.spec.js',
+  files: 'dist/**/*.test.js',
 
   groups: [
     {

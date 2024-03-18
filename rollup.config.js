@@ -1,10 +1,10 @@
 import nodeResolve from '@rollup/plugin-node-resolve';
 import typescript from '@rollup/plugin-typescript';
-// eslint-disable-next-line import/no-extraneous-dependencies
+
 import {importMetaAssets}  from '@web/rollup-plugin-import-meta-assets';
 
 export default {
-  input: './scl-comm-editor.ts',
+  input: './scl-communication-editor.ts',
   output: {
     sourcemap: true,        // Add source map to build output
     format:'es',            // ES module type export
