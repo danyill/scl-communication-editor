@@ -516,7 +516,9 @@ function renderContainer(bayOrVL: Element): TemplateResult<2> {
       </g>`;
 }
 
-export function sldSvg(substation: Element, gridSize: number): TemplateResult {
+export function sldSvg(substation: Element, gridSize?: number): TemplateResult {
+  const nested = !gridSize;
+
   const {
     dim: [w, h],
   } = attributes(substation);
@@ -524,10 +526,10 @@ export function sldSvg(substation: Element, gridSize: number): TemplateResult {
   return html` <svg
     xmlns="${svgNs}"
     xmlns:xlink="${xlinkNs}"
+    ${nested ? nothing : `viewBox = '0 0 ${w} ${h}'`}
+    ${nested ? nothing : `width="${w * gridSize}"`}
+    ${nested ? nothing : `height="${h * gridSize}"`}
     id="sld"
-    viewBox="0 0 ${w} ${h}"
-    width="${w * gridSize}"
-    height="${h * gridSize}"
     stroke-width="0.06"
     fill="none"
   >
@@ -537,30 +539,6 @@ export function sldSvg(substation: Element, gridSize: number): TemplateResult {
         font-style: normal;
         font-weight: 400;
         src: url(${robotoDataURL}) format('woff');
-      }
-      .handle {
-        visibility: hidden;
-      }
-      :focus {
-        outline: none;
-      }
-      g:hover > .handle {
-        opacity: 0.2;
-        visibility: visible;
-      }
-      g:hover > .handle:hover {
-        visibility: visible;
-        opacity: 0.83;
-      }
-      g.voltagelevel > rect,
-      g.bay > rect {
-        shape-rendering: crispEdges;
-      }
-      svg:not(:hover) .preview {
-        visibility: hidden;
-      }
-      .preview {
-        opacity: 0.75;
       }
     </style>
     ${symbols}

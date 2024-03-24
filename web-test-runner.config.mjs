@@ -22,7 +22,7 @@ const filteredLogs = [
 const browsers = [
      playwrightLauncher({ product: 'chromium' }),
      playwrightLauncher({ product: 'firefox' }),
-     playwrightLauncher({ product: 'webkit' }),
+     // playwrightLauncher({ product: 'webkit' }), issue with on click event on `text` elements
    ];
 
 function defaultGetImageDiff({ baselineImage, image, options }) {
@@ -71,9 +71,11 @@ export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
     }),
   ],
 
-  files: 'dist/**/*.test.js',
-
   groups: [
+    {
+      name: 'unit',
+      files: 'dist/**/*.spec.js',
+    },
     {
       name: 'visual',
       files: 'dist/**/*.test.js',

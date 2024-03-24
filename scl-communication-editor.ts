@@ -1,7 +1,7 @@
 import { css, html, LitElement } from 'lit';
 import { property, state } from 'lit/decorators.js';
 
-import { sldSvg } from './foundation/sldSvg.js';
+import './communication-mapping-editor.js';
 
 export default class SlcCommunicationEditor extends LitElement {
   @property({ attribute: false })
@@ -20,29 +20,19 @@ export default class SlcCommunicationEditor extends LitElement {
 
   render() {
     if (!this.substation) return html`<main>No substation section</main>`;
-    return html`<main>${sldSvg(this.substation, this.gridSize)}</main>`;
+
+    return html`<main>
+      <communication-mapping-editor
+        .substation=${this.substation}
+        .gridSize=${this.gridSize}
+      ></communication-mapping-editor>
+    </main>`;
   }
 
   static styles = css`
     main {
       width: 100%;
       height: 100%;
-    }
-
-    g.voltagelevel {
-      opacity: 0.2;
-    }
-
-    g.label {
-      opacity: 0.2;
-    }
-
-    g.node {
-      opacity: 0.2;
-    }
-
-    svg > g.transformer {
-      opacity: 0.2;
     }
   `;
 }

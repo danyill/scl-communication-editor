@@ -570,3 +570,23 @@ export const ssd = `<?xml version="1.0" encoding="UTF-8"?>
 		</VoltageLevel>
 	</Substation>
 </SCL>`;
+
+export const scd = `<?xml version="1.0" encoding="UTF-8"?>
+<SCL xmlns="http://www.iec.ch/61850/2003/SCL" version="2007" revision="B" release="4" xmlns:esld="https://transpower.co.nz/SCL/SSD/SLD/v0">
+	<Header id="scd"/>
+	<Substation name="S1" esld:w="30" esld:h="15">
+		<VoltageLevel name="V2" esld:x="1" esld:y="8" esld:lx="1" esld:ly="8" esld:w="27" esld:h="6">
+			<Bay name="B2" esld:x="17" esld:y="9" esld:lx="17" esld:ly="9" esld:w="10" esld:h="4"/>
+			<Bay name="B1" esld:x="2" esld:y="9" esld:lx="2" esld:ly="9" esld:w="6" esld:h="4"/>
+		</VoltageLevel>
+		<VoltageLevel name="V1" esld:x="1" esld:y="2" esld:lx="1" esld:ly="2" esld:w="16" esld:h="5">
+			<Bay name="B2" esld:x="9" esld:y="3" esld:lx="9" esld:ly="3" esld:w="6" esld:h="3"/>
+			<Bay name="B1" esld:x="2" esld:y="3" esld:lx="2" esld:ly="3" esld:w="6" esld:h="3"/>
+		</VoltageLevel>
+	</Substation>
+	<IED name="IED1" />
+	<IED name="IED2" esld:x="4" esld:y="4" esld:lx="5" esld:ly="5" />
+	<IED name="IED3" esld:x="10" esld:y="4" esld:lx="11" esld:ly="5" />
+	<IED name="IED4" esld:x="4" esld:y="11" esld:lx="5" esld:ly="12" />
+	<IED name="IED5" esld:x="19" esld:y="11" esld:lx="20" esld:ly="12" />
+</SCL>`;

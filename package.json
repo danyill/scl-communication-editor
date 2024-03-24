@@ -1,13 +1,13 @@
 {
-  "name": "oscd-publisher",
-  "description": "OpenSCD core type plugin to configure control blocks",
+  "name": "scl-communication-editor",
+  "description": "PLugin to see and edit IEC 61850 type communication",
   "license": "Apache-2.0",
   "author": "Jakob Vogelsang",
   "version": "0.0.1",
-  "main": "dist/oscd-publisher.js",
-  "module": "dist/oscd-publisher.js",
+  "main": "dist/scl-communication-editor.js",
+  "module": "dist/scl-communication-editor.js",
   "exports": {
-    ".": "./dist/oscd-publisher.js"
+    ".": "./dist/scl-communication-editor.js"
   },
   "scripts": {
     "analyze": "cem analyze --litelement",
@@ -17,9 +17,11 @@
     "prepublish": "tsc && npm run analyze -- --exclude dist",
     "lint": "eslint --ext .ts,.html . --ignore-path .gitignore && prettier \"**/*.ts\" --check --ignore-path .gitignore",
     "format": "eslint --ext .ts,.html . --fix --ignore-path .gitignore && prettier \"**/*.ts\" --write --ignore-path .gitignore",
-    "test": "playwright install && tsc && wtr --coverage",
-    "test:update": "tsc && wtr --update-visual-baseline",
-    "test:watch": "tsc && concurrently -k -r \"tsc --watch --preserveWatchOutput\" \"wtr --watch\""
+    "test:visual": "playwright install && tsc && wtr --group visual --coverage",
+    "test:unit": "playwright install && tsc && wtr --group unit --coverage",
+    "test:update": "tsc && wtr --group visual --update-visual-baseline",
+    "test:unit:watch": "tsc && concurrently -k -r \"tsc --watch --preserveWatchOutput\" \"wtr --group unit --watch\"",
+    "test:visual:watch": "tsc && concurrently -k -r \"tsc --watch --preserveWatchOutput\" \"wtr --group visual --watch\""
   },
   "dependencies": {
     "@material/mwc-button": "^0.27.0",
@@ -38,6 +40,7 @@
     "@material/mwc-switch": "^0.27.0",
     "@material/mwc-textfield": "^0.27.0",
     "@material/web": "1.0.1",
+    "@openscd/open-scd-core": "^0.0.2",
     "@openenergytools/scl-lib": "0.9.20",
     "lit": "^2.4.0"
   },
@@ -92,6 +95,7 @@
         {
           "devDependencies": [
             "**/*.test.ts",
+            "**/*.spec.ts",
             "rollup.config.js"
           ]
         }
