@@ -416,7 +416,7 @@ export function svgConnectionGenerator(
     const [linkPath, arrowPath] = svgPath(conn, faceCount);
 
     const color = serviceColoring[conn.source.controlBlock.tagName];
-    return svg`<svg class="connection"
+    return svg`<svg class="connection ${conn.source.controlBlock.tagName}"
           width="${w}"
           height="${h}">
           <path d="${linkPath}" stroke="${color}" stroke-width="0.08"/>

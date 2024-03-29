@@ -1,4 +1,5 @@
-import { css, html, LitElement, TemplateResult } from 'lit';
+/* eslint-disable no-return-assign */
+import { css, html, LitElement } from 'lit';
 import { property, state } from 'lit/decorators.js';
 
 import { identity } from '@openenergytools/scl-lib';
@@ -6,7 +7,6 @@ import { identity } from '@openenergytools/scl-lib';
 import './communication-mapping-editor.js';
 
 import { Connection } from './foundation/types.js';
-import { serviceColoring } from './foundation/paths.js';
 
 function combineSelectors<T>(...selectors: T[][]): string {
   return selectors
@@ -144,37 +144,10 @@ export default class SlcCommunicationEditor extends LitElement {
   @property({ type: Number })
   editCount = -1;
 
-  // eslint-disable-next-line class-methods-use-this
-  renderService(controlBlock: string): TemplateResult[] {
-    return [
-      html`<svg viewBox="0 0 25 25" width="25" height="25">
-        <path
-          d="M0,12.5L25,12.5"
-          stroke-width="3"
-          stroke="${serviceColoring[controlBlock]}"
-        />
-      </svg>`,
-      html`<label>${controlBlock}</label>`,
-    ];
-  }
-
-  renderInfoBox(): TemplateResult {
-    const controlBlocks = [
-      'ReportControl',
-      'GSEControl',
-      'SampledValueControl',
-    ];
-
-    return html`<div class="info-box">
-      ${controlBlocks.map(controlBlock => this.renderService(controlBlock))}
-    </div>`;
-  }
-
   render() {
     if (!this.substation) return html`<main>No substation section</main>`;
 
     return html`<main>
-      ${this.renderInfoBox()}
       <communication-mapping-editor
         .substation=${this.substation}
         .gridSize=${this.gridSize}
@@ -190,21 +163,6 @@ export default class SlcCommunicationEditor extends LitElement {
     main {
       width: 100%;
       height: 100%;
-    }
-
-    .info-box {
-      display: flex;
-      align-items: center;
-    }
-
-    .info-box > svg {
-      padding: 10px 20px 10px 20px;
-    }
-
-    .info-box > label {
-      font-family: 'Roboto';
-      font-style: normal;
-      font-weight: 400;
     }
   `;
 }

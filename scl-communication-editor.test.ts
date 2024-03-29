@@ -228,5 +228,92 @@ describe('scl-communication-editor', () => {
         await visualDiff(editor, `#11 connection highlight with hover`);
       });
     });
+
+    describe('with filtered ReportControl', () => {
+      let editor: SlcCommunicationEditor;
+      beforeEach(async () => {
+        editor = await fixture(
+          html`<scl-communication-editor
+            .doc=${docComm}
+          ></scl-communication-editor>`
+        );
+        div.prepend(editor);
+
+        await setViewport({ width: 1200, height: 800 });
+      });
+
+      afterEach(async () => {
+        editor.remove();
+      });
+
+      it('per default looks like the latest snapshot', async () => {
+        await editor.updateComplete;
+
+        await sendMouse({ type: 'click', position: [75, 23] });
+
+        await timeout(200);
+
+        await visualDiff(editor, `#12 filtered ReportControl connections`);
+      });
+    });
+
+    describe('with filtered GSEControl', () => {
+      let editor: SlcCommunicationEditor;
+      beforeEach(async () => {
+        editor = await fixture(
+          html`<scl-communication-editor
+            .doc=${docComm}
+          ></scl-communication-editor>`
+        );
+        div.prepend(editor);
+
+        await setViewport({ width: 1200, height: 800 });
+      });
+
+      afterEach(async () => {
+        editor.remove();
+      });
+
+      it('per default looks like the latest snapshot', async () => {
+        await editor.updateComplete;
+
+        await sendMouse({ type: 'click', position: [262, 25] });
+
+        await timeout(200);
+
+        await visualDiff(editor, `#13 filtered GSEControl connections`);
+      });
+    });
+
+    describe('with filtered SampledValueControl', () => {
+      let editor: SlcCommunicationEditor;
+      beforeEach(async () => {
+        editor = await fixture(
+          html`<scl-communication-editor
+            .doc=${docComm}
+          ></scl-communication-editor>`
+        );
+        div.prepend(editor);
+
+        await setViewport({ width: 1200, height: 800 });
+      });
+
+      afterEach(async () => {
+        editor.remove();
+      });
+
+      it('per default looks like the latest snapshot', async () => {
+        await editor.updateComplete;
+
+        await sendMouse({ type: 'click', position: [433, 25] });
+
+        await timeout(200);
+
+        await visualDiff(
+          editor,
+          `#14 filtered SampledValueControl connections`
+        );
+      });
+    });
   });
 });

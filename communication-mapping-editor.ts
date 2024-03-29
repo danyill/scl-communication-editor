@@ -1,4 +1,4 @@
-import { LitElement, nothing, css, html, svg } from 'lit';
+import { LitElement, nothing, css, html, svg, TemplateResult } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 
@@ -16,7 +16,7 @@ import {
   svgNs,
   xlinkNs,
 } from './foundation/sldUtil.js';
-import { svgConnectionGenerator } from './foundation/paths.js';
+import { serviceColoring, svgConnectionGenerator } from './foundation/paths.js';
 import { IED, Connection } from './foundation/types.js';
 
 @customElement('communication-mapping-editor')
@@ -26,6 +26,15 @@ export class CommunicationMappingEditor extends LitElement {
 
   @property({ type: Number })
   gridSize!: number;
+
+  @property({ type: Boolean })
+  filterReport = false;
+
+  @property({ type: Boolean })
+  filterGOOSE = false;
+
+  @property({ type: Boolean })
+  filterSMV = false;
 
   @state()
   get ieds(): IED[] {
@@ -245,6 +254,47 @@ export class CommunicationMappingEditor extends LitElement {
       </g></svg>`;
   }
 
+  renderService(controlBlock: string): TemplateResult[] {
+    return [
+      html`<svg viewBox="0 0 25 25" width="25" height="25">
+        <path
+          d="M0,12.5L25,12.5"
+          stroke-width="3"
+          stroke="${serviceColoring[controlBlock]}"
+        />
+      </svg>`,
+      html`<div class="serviceFilter">
+        <input
+          type="checkbox"
+          id="serviceFilter"
+          name="serviceFilter"
+          checked
+          @click="${(evt: Event) => {
+            if (controlBlock === 'ReportControl')
+              this.filterReport = !(evt.target as HTMLInputElement).checked;
+            if (controlBlock === 'GSEControl')
+              this.filterGOOSE = !(evt.target as HTMLInputElement).checked;
+            if (controlBlock === 'SampledValueControl')
+              this.filterSMV = !(evt.target as HTMLInputElement).checked;
+          }}"
+        />
+        <label for="serviceFilter">${controlBlock}</label>
+      </div>`,
+    ];
+  }
+
+  renderInfoBox(): TemplateResult {
+    const controlBlocks = [
+      'ReportControl',
+      'GSEControl',
+      'SampledValueControl',
+    ];
+
+    return html`<div class="info-box">
+      ${controlBlocks.map(controlBlock => this.renderService(controlBlock))}
+    </div>`;
+  }
+
   render() {
     const {
       dim: [w, h],
@@ -272,6 +322,18 @@ export class CommunicationMappingEditor extends LitElement {
     const svgConnection = svgConnectionGenerator(this.substation, this.links);
 
     return html`<div id="container">
+      ${this.renderInfoBox()}
+      <style>
+        ${this.filterReport
+          ? `svg.connection.ReportControl {display: none}`
+          : nothing}
+        ${this.filterGOOSE
+          ? `svg.connection.GSEControl {display: none} `
+          : nothing}
+        ${this.filterSMV
+          ? `svg.connection.SampledValueControl {display: none} `
+          : nothing}
+      </style>
       <svg
         xmlns="${svgNs}"
         xmlns:xlink="${xlinkNs}"
@@ -324,6 +386,21 @@ export class CommunicationMappingEditor extends LitElement {
     svg.connection:hover > path {
       stroke: black;
       stroke-width: 0.12;
+    }
+
+    .info-box {
+      display: flex;
+      align-items: center;
+    }
+
+    .info-box > svg {
+      padding: 10px 20px 10px 20px;
+    }
+
+    .info-box > .serviceFilter > label {
+      font-family: 'Roboto';
+      font-style: normal;
+      font-weight: 400;
     }
   `;
 }
