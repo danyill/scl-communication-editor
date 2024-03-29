@@ -4,7 +4,7 @@ import { sendMouse, setViewport } from '@web/test-runner-commands';
 
 import { visualDiff } from '@web/test-runner-visual-regression';
 
-import { rpScd, scd, ssd } from './testfiles.js';
+import { commScd, scd, ssd } from './testfiles.js';
 
 import SlcCommunicationEditor from './scl-communication-editor.js';
 
@@ -20,7 +20,7 @@ customElements.define('scl-communication-editor', SlcCommunicationEditor);
 
 const pureSSD = new DOMParser().parseFromString(ssd, 'application/xml');
 const docWithIED = new DOMParser().parseFromString(scd, 'application/xml');
-const docRp = new DOMParser().parseFromString(rpScd, 'application/xml');
+const docComm = new DOMParser().parseFromString(commScd, 'application/xml');
 
 describe('scl-communication-editor', () => {
   let div: HTMLDivElement;
@@ -104,8 +104,8 @@ describe('scl-communication-editor', () => {
     it('clicked on an IED looks like the latest snapshot', async () => {
       await editor.updateComplete;
 
-      await sendMouse({ type: 'move', position: [150, 155] });
-      await sendMouse({ type: 'click', position: [150, 155] });
+      await sendMouse({ type: 'move', position: [150, 200] });
+      await sendMouse({ type: 'click', position: [150, 200] });
 
       await timeout(200);
       await visualDiff(editor, `#4 clicked on an IED`);
@@ -114,10 +114,10 @@ describe('scl-communication-editor', () => {
     it('clicked and moved an IED looks like the latest snapshot', async () => {
       await editor.updateComplete;
 
-      await sendMouse({ type: 'move', position: [150, 155] });
-      await sendMouse({ type: 'click', position: [150, 155] });
+      await sendMouse({ type: 'move', position: [150, 200] });
+      await sendMouse({ type: 'click', position: [150, 200] });
 
-      await sendMouse({ type: 'move', position: [150, 120] });
+      await sendMouse({ type: 'move', position: [150, 170] });
 
       await timeout(200);
 
@@ -127,11 +127,11 @@ describe('scl-communication-editor', () => {
     it('release selected IED looks like the latest snapshot', async () => {
       await editor.updateComplete;
 
-      await sendMouse({ type: 'move', position: [150, 155] });
-      await sendMouse({ type: 'click', position: [150, 155] });
+      await sendMouse({ type: 'move', position: [150, 200] });
+      await sendMouse({ type: 'click', position: [150, 200] });
 
-      await sendMouse({ type: 'move', position: [150, 120] });
-      await sendMouse({ type: 'click', position: [150, 120] });
+      await sendMouse({ type: 'move', position: [150, 170] });
+      await sendMouse({ type: 'click', position: [150, 170] });
 
       await timeout(200);
 
@@ -141,8 +141,8 @@ describe('scl-communication-editor', () => {
     it('clicked on an IED label looks like the latest snapshot', async () => {
       await editor.updateComplete;
 
-      await sendMouse({ type: 'move', position: [180, 145] });
-      await sendMouse({ type: 'click', position: [180, 145] });
+      await sendMouse({ type: 'move', position: [180, 190] });
+      await sendMouse({ type: 'click', position: [180, 190] });
 
       await timeout(300);
       await visualDiff(editor, `#7 clicked on an IED label`);
@@ -151,10 +151,10 @@ describe('scl-communication-editor', () => {
     it('clicked and moved an IED label looks like the latest snapshot', async () => {
       await editor.updateComplete;
 
-      await sendMouse({ type: 'move', position: [180, 145] });
-      await sendMouse({ type: 'click', position: [180, 145] });
+      await sendMouse({ type: 'move', position: [180, 190] });
+      await sendMouse({ type: 'click', position: [180, 190] });
 
-      await sendMouse({ type: 'move', position: [180, 120] });
+      await sendMouse({ type: 'move', position: [180, 165] });
 
       await timeout(300);
 
@@ -164,11 +164,11 @@ describe('scl-communication-editor', () => {
     it('release selected IED label looks like the latest snapshot', async () => {
       await editor.updateComplete;
 
-      await sendMouse({ type: 'move', position: [180, 145] });
-      await sendMouse({ type: 'click', position: [180, 145] });
+      await sendMouse({ type: 'move', position: [180, 190] });
+      await sendMouse({ type: 'click', position: [180, 190] });
 
-      await sendMouse({ type: 'move', position: [180, 120] });
-      await sendMouse({ type: 'click', position: [180, 120] });
+      await sendMouse({ type: 'move', position: [180, 165] });
+      await sendMouse({ type: 'click', position: [180, 165] });
 
       await timeout(300);
 
@@ -176,13 +176,13 @@ describe('scl-communication-editor', () => {
     });
   });
 
-  describe('with report control type SCD loaded', () => {
+  describe('with communication services included', () => {
     describe('without any interaction', () => {
       let editor: SlcCommunicationEditor;
       beforeEach(async () => {
         editor = await fixture(
           html`<scl-communication-editor
-            .doc=${docRp}
+            .doc=${docComm}
           ></scl-communication-editor>`
         );
         div.prepend(editor);
@@ -197,7 +197,7 @@ describe('scl-communication-editor', () => {
       it('per default looks like the latest snapshot', async () => {
         await editor.updateComplete;
         await timeout(200);
-        await visualDiff(editor, `#10 report control type connection`);
+        await visualDiff(editor, `#10 connections rendered`);
       });
     });
 
@@ -206,7 +206,7 @@ describe('scl-communication-editor', () => {
       beforeEach(async () => {
         editor = await fixture(
           html`<scl-communication-editor
-            .doc=${docRp}
+            .doc=${docComm}
           ></scl-communication-editor>`
         );
         div.prepend(editor);
@@ -221,14 +221,11 @@ describe('scl-communication-editor', () => {
       it('per default looks like the latest snapshot', async () => {
         await editor.updateComplete;
 
-        await sendMouse({ type: 'move', position: [241, 153] });
+        await sendMouse({ type: 'move', position: [241, 198] });
 
         await timeout(200);
 
-        await visualDiff(
-          editor,
-          `#11 report control type connection highlight on hover`
-        );
+        await visualDiff(editor, `#11 connection highlight with hover`);
       });
     });
   });

@@ -17,6 +17,7 @@
     "prepublish": "tsc && npm run analyze -- --exclude dist",
     "lint": "eslint --ext .ts,.html . --ignore-path .gitignore && prettier \"**/*.ts\" --check --ignore-path .gitignore",
     "format": "eslint --ext .ts,.html . --fix --ignore-path .gitignore && prettier \"**/*.ts\" --write --ignore-path .gitignore",
+    "test": "playwright install && tsc && wtr --coverage",
     "test:visual": "playwright install && tsc && wtr --group visual --coverage",
     "test:unit": "playwright install && tsc && wtr --group unit --coverage",
     "test:update": "tsc && wtr --group visual --update-visual-baseline",

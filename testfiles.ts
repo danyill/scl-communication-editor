@@ -591,17 +591,38 @@ export const scd = `<?xml version="1.0" encoding="UTF-8"?>
 	<IED name="IED5" esld:x="19" esld:y="11" esld:lx="20" esld:ly="12" />
 </SCL>`;
 
-export const rpScd = `<?xml version="1.0" encoding="UTF-8"?>
+export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
 <SCL xmlns="http://www.iec.ch/61850/2003/SCL" version="2007" revision="B" release="4" xmlns:esld="https://transpower.co.nz/SCL/SSD/SLD/v0">
 	<Header id="scd"/>
     <Substation name="AA1" esld:w="35" esld:h="25">
         <VoltageLevel name="E1" esld:x="1" esld:y="1" esld:lx="1" esld:ly="1" esld:w="25" esld:h="17">
-            <Bay name="B6" esld:x="18" esld:y="10" esld:lx="18" esld:ly="10" esld:w="7" esld:h="7"/><Bay name="B5" esld:x="10" esld:y="10" esld:lx="10" esld:ly="10.5" esld:w="7" esld:h="7"/><Bay name="B4" esld:x="2" esld:y="10" esld:lx="2" esld:ly="10.5" esld:w="7" esld:h="7"/><Bay name="B3" esld:x="18" esld:y="2" esld:lx="18" esld:ly="2.5" esld:w="7" esld:h="7"/><Bay name="B2" esld:x="10" esld:y="2" esld:lx="10" esld:ly="2.5" esld:w="7" esld:h="7"/><Bay name="B1" esld:x="2" esld:y="2" esld:lx="2" esld:ly="2.5" esld:w="7" esld:h="7"/>
+            <Bay name="B6" esld:x="18" esld:y="10" esld:lx="18" esld:ly="10.5" esld:w="7" esld:h="7"/><Bay name="B5" esld:x="10" esld:y="10" esld:lx="10" esld:ly="10.5" esld:w="7" esld:h="7"/><Bay name="B4" esld:x="2" esld:y="10" esld:lx="2" esld:ly="10.5" esld:w="7" esld:h="7"/><Bay name="B3" esld:x="18" esld:y="2" esld:lx="18" esld:ly="2.5" esld:w="7" esld:h="7"/><Bay name="B2" esld:x="10" esld:y="2" esld:lx="10" esld:ly="2.5" esld:w="7" esld:h="7"/><Bay name="B1" esld:x="2" esld:y="2" esld:lx="2" esld:ly="2.5" esld:w="7" esld:h="7"/>
         </VoltageLevel>
     </Substation>
-	<IED name="t1" esld:x="5" esld:y="5" esld:lx="6" esld:ly="6">
+	<IED name="ts1" esld:x="5" esld:y="5" esld:lx="6" esld:ly="6">
         <AccessPoint name="AP1">
-            <LN lnClass="IHMI" inst="1"/>
+            <Server>
+                <LDevice inst="lDevice">
+                    <LN0 lnClass="LLN0" inst="">
+                        <GSEControl name="gse1"/>
+                        <GSEControl name="gse2"/>
+                        <Inputs>
+                            <ExtRef iedName="s11" srcLDInst="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse1"/>
+                            <ExtRef iedName="s11" srcLDInst="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse2"/>
+                            <ExtRef iedName="s11" srcLDInst="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse3"/>
+                            <ExtRef iedName="s12" srcLDInst="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse1"/>
+                            <ExtRef iedName="s12" srcLDInst="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse2"/>
+                            <ExtRef iedName="s12" srcLDInst="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse3"/>
+                            <ExtRef iedName="s13" lDevice="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse1"/>
+                            <ExtRef iedName="s13" lDevice="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse2"/>
+                            <ExtRef iedName="s13" lDevice="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse3"/>
+                            <ExtRef iedName="s14" lDevice="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse1"/>
+                            <ExtRef iedName="s14" lDevice="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse2"/>
+                            <ExtRef iedName="s14" lDevice="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse3"/>
+                        </Inputs>
+                    </LN0>
+                </LDevice>
+            </Server>
         </AccessPoint>
     </IED>
 	<IED name="s11" esld:x="3" esld:y="5" esld:lx="2" esld:ly="6">
@@ -609,21 +630,13 @@ export const rpScd = `<?xml version="1.0" encoding="UTF-8"?>
             <Server>
                 <LDevice inst="lDevice">
                     <LN0 lnClass="LLN0" inst="">
-                        <ReportControl name="rp1">
-                            <RptEnabled>
-                                <ClientLN iedName="t1"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp2">
-                            <RptEnabled>
-                                <ClientLN iedName="t1"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp3">
-                            <RptEnabled>
-                                <ClientLN iedName="t1"/>
-                            </RptEnabled>
-                        </ReportControl>
+                        <GSEControl name="gse1"/>
+                        <GSEControl name="gse2"/>
+                        <GSEControl name="gse3"/>
+                        <Inputs>
+                            <ExtRef iedName="ts1" srcLDInst="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse1"/>
+                            <ExtRef iedName="ts1" srcLDInst="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse2"/>
+                        </Inputs>
                     </LN0>
                 </LDevice>
             </Server>
@@ -634,21 +647,9 @@ export const rpScd = `<?xml version="1.0" encoding="UTF-8"?>
             <Server>
                 <LDevice inst="lDevice">
                     <LN0 lnClass="LLN0" inst="">
-                        <ReportControl name="rp1">
-                            <RptEnabled>
-                                <ClientLN iedName="t1"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp2">
-                            <RptEnabled>
-                                <ClientLN iedName="t1"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp3">
-                            <RptEnabled>
-                                <ClientLN iedName="t1"/>
-                            </RptEnabled>
-                        </ReportControl>
+                        <GSEControl name="gse1"/>
+                        <GSEControl name="gse2"/>
+                        <GSEControl name="gse3"/>
                     </LN0>
                 </LDevice>
             </Server>
@@ -659,21 +660,9 @@ export const rpScd = `<?xml version="1.0" encoding="UTF-8"?>
             <Server>
                 <LDevice inst="lDevice">
                     <LN0 lnClass="LLN0" inst="">
-                        <ReportControl name="rp1">
-                            <RptEnabled>
-                                <ClientLN iedName="t1"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp2">
-                            <RptEnabled>
-                                <ClientLN iedName="t1"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp3">
-                            <RptEnabled>
-                                <ClientLN iedName="t1"/>
-                            </RptEnabled>
-                        </ReportControl>
+                        <GSEControl name="gse1"/>
+                        <GSEControl name="gse2"/>
+                        <GSEControl name="gse3"/>
                     </LN0>
                 </LDevice>
             </Server>
@@ -684,29 +673,38 @@ export const rpScd = `<?xml version="1.0" encoding="UTF-8"?>
             <Server>
                 <LDevice inst="lDevice">
                     <LN0 lnClass="LLN0" inst="">
-                        <ReportControl name="rp1">
-                            <RptEnabled>
-                                <ClientLN iedName="t1"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp2">
-                            <RptEnabled>
-                                <ClientLN iedName="t1"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp3">
-                            <RptEnabled>
-                                <ClientLN iedName="t1"/>
-                            </RptEnabled>
-                        </ReportControl>
+                        <GSEControl name="gse1"/>
+                        <GSEControl name="gse2"/>
+                        <GSEControl name="gse3"/>
                     </LN0>
                 </LDevice>
             </Server>
         </AccessPoint>
     </IED>
-    <IED name="t2" esld:x="13" esld:y="5" esld:lx="14" esld:ly="6">
+    <IED name="ts2" esld:x="13" esld:y="5" esld:lx="14" esld:ly="6">
         <AccessPoint name="AP1">
-            <LN lnClass="IHMI" inst="1"/>
+            <Server>
+                <LDevice inst="lDevice">
+                    <LN0 lnClass="LLN0" inst="">
+                        <GSEControl name="gse1"/>
+                        <GSEControl name="gse2"/>
+                        <Inputs>
+                            <ExtRef iedName="s21" srcLDInst="lDevice" srcLNClass="LLN0" srcCBName="gse1"/>
+                            <ExtRef iedName="s21" srcLDInst="lDevice" srcLNClass="LLN0" srcCBName="gse2"/>
+                            <ExtRef iedName="s21" srcLDInst="lDevice" srcLNClass="LLN0" srcCBName="gse3"/>
+                            <ExtRef iedName="s22" srcLDInst="lDevice" srcPrefix="" srcLNClass="LLN0" srcLNInst="" srcCBName="gse1"/>
+                            <ExtRef iedName="s22" srcLDInst="lDevice" srcPrefix="" srcLNClass="LLN0" srcLNInst="" srcCBName="gse2"/>
+                            <ExtRef iedName="s22" srcLDInst="lDevice" srcPrefix="" srcLNClass="LLN0" srcLNInst="" srcCBName="gse3"/>
+                            <ExtRef iedName="s23" lDevice="lDevice" srcLNClass="LLN0" srcCBName="gse1"/>
+                            <ExtRef iedName="s23" lDevice="lDevice" srcLNClass="LLN0" srcCBName="gse2"/>
+                            <ExtRef iedName="s23" lDevice="lDevice" srcLNClass="LLN0" srcCBName="gse3"/>
+                            <ExtRef iedName="s24" lDevice="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="smv1"/>
+                            <ExtRef iedName="s24" lDevice="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="smv2"/>
+                            <ExtRef iedName="s24" lDevice="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="smv3"/>
+                        </Inputs>
+                    </LN0>
+                </LDevice>
+            </Server>
         </AccessPoint>
     </IED>
 	<IED name="s21" esld:x="13" esld:y="2" esld:lx="14" esld:ly="3">
@@ -714,21 +712,9 @@ export const rpScd = `<?xml version="1.0" encoding="UTF-8"?>
             <Server>
                 <LDevice inst="lDevice">
                     <LN0 lnClass="LLN0" inst="">
-                        <ReportControl name="rp1">
-                            <RptEnabled>
-                                <ClientLN iedName="t2"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp2">
-                            <RptEnabled>
-                                <ClientLN iedName="t2"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp3">
-                            <RptEnabled>
-                                <ClientLN iedName="t2"/>
-                            </RptEnabled>
-                        </ReportControl>
+                        <GSEControl name="gse1"/>
+                        <GSEControl name="gse2"/>
+                        <GSEControl name="gse3"/>
                     </LN0>
                 </LDevice>
             </Server>
@@ -739,21 +725,9 @@ export const rpScd = `<?xml version="1.0" encoding="UTF-8"?>
             <Server>
                 <LDevice inst="lDevice">
                     <LN0 lnClass="LLN0" inst="">
-                        <ReportControl name="rp1">
-                            <RptEnabled>
-                                <ClientLN iedName="t2"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp2">
-                            <RptEnabled>
-                                <ClientLN iedName="t2"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp3">
-                            <RptEnabled>
-                                <ClientLN iedName="t2"/>
-                            </RptEnabled>
-                        </ReportControl>
+                        <GSEControl name="gse1"/>
+                        <GSEControl name="gse2"/>
+                        <GSEControl name="gse3"/>
                     </LN0>
                 </LDevice>
             </Server>
@@ -764,21 +738,9 @@ export const rpScd = `<?xml version="1.0" encoding="UTF-8"?>
             <Server>
                 <LDevice inst="lDevice">
                     <LN0 lnClass="LLN0" inst="">
-                        <ReportControl name="rp1">
-                            <RptEnabled>
-                                <ClientLN iedName="t2"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp2">
-                            <RptEnabled>
-                                <ClientLN iedName="t2"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp3">
-                            <RptEnabled>
-                                <ClientLN iedName="t2"/>
-                            </RptEnabled>
-                        </ReportControl>
+                        <GSEControl name="gse1"/>
+                        <GSEControl name="gse2"/>
+                        <GSEControl name="gse3"/>
                     </LN0>
                 </LDevice>
             </Server>
@@ -789,29 +751,39 @@ export const rpScd = `<?xml version="1.0" encoding="UTF-8"?>
             <Server>
                 <LDevice inst="lDevice">
                     <LN0 lnClass="LLN0" inst="">
-                        <ReportControl name="rp1">
-                            <RptEnabled>
-                                <ClientLN iedName="t2"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp2">
-                            <RptEnabled>
-                                <ClientLN iedName="t2"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp3">
-                            <RptEnabled>
-                                <ClientLN iedName="t2"/>
-                            </RptEnabled>
-                        </ReportControl>
+                        <SampledValueControl name="smv1"/>
+                        <SampledValueControl name="smv2"/>
+                        <SampledValueControl name="smv3"/>
                     </LN0>
                 </LDevice>
             </Server>
         </AccessPoint>
     </IED>
-    <IED name="t3" esld:x="21" esld:y="5" esld:lx="21.5" esld:ly="7">
+    <IED name="ts3" esld:x="21" esld:y="5" esld:lx="21.5" esld:ly="7">
         <AccessPoint name="AP1">
-            <LN lnClass="IHMI" inst="1"/>
+            <Server>
+                <LDevice inst="lDevice">
+                    <LN0 lnClass="LLN0" inst="">
+                        <GSEControl name="gse1"/>
+                        <SampledValueControl name="smv2"/>
+                        <GSEControl name="gse3"/>
+                        <Inputs>
+                            <ExtRef iedName="s31" srcLDInst="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse1"/>
+                            <ExtRef iedName="s31" srcLDInst="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="smv2"/>
+                            <ExtRef iedName="s31" srcLDInst="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse3"/>
+                            <ExtRef iedName="s32" srcLDInst="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse1"/>
+                            <ExtRef iedName="s32" srcLDInst="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="smv2"/>
+                            <ExtRef iedName="s32" srcLDInst="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse3"/>
+                            <ExtRef iedName="s33" lDevice="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse1"/>
+                            <ExtRef iedName="s33" lDevice="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="smv2"/>
+                            <ExtRef iedName="s33" lDevice="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse3"/>
+                            <ExtRef iedName="s34" lDevice="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse1"/>
+                            <ExtRef iedName="s34" lDevice="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="smv2"/>
+                            <ExtRef iedName="s34" lDevice="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse3"/>
+                        </Inputs>
+                    </LN0>
+                </LDevice>
+            </Server>
         </AccessPoint>
     </IED>
 	<IED name="s31" esld:x="24" esld:y="4" esld:lx="24" esld:ly="4.5">
@@ -819,21 +791,12 @@ export const rpScd = `<?xml version="1.0" encoding="UTF-8"?>
             <Server>
                 <LDevice inst="lDevice">
                     <LN0 lnClass="LLN0" inst="">
-                        <ReportControl name="rp1">
-                            <RptEnabled>
-                                <ClientLN iedName="t3"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp2">
-                            <RptEnabled>
-                                <ClientLN iedName="t3"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp3">
-                            <RptEnabled>
-                                <ClientLN iedName="t3"/>
-                            </RptEnabled>
-                        </ReportControl>
+                        <GSEControl name="gse1"/>
+                        <SampledValueControl name="smv2"/>
+                        <GSEControl name="gse3"/>
+                        <Inputs>
+                            <ExtRef iedName="ts3" srcLDInst="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse1"/>
+                        </Inputs>
                     </LN0>
                 </LDevice>
             </Server>
@@ -844,21 +807,12 @@ export const rpScd = `<?xml version="1.0" encoding="UTF-8"?>
             <Server>
                 <LDevice inst="lDevice">
                     <LN0 lnClass="LLN0" inst="">
-                        <ReportControl name="rp1">
-                            <RptEnabled>
-                                <ClientLN iedName="t3"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp2">
-                            <RptEnabled>
-                                <ClientLN iedName="t3"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp3">
-                            <RptEnabled>
-                                <ClientLN iedName="t3"/>
-                            </RptEnabled>
-                        </ReportControl>
+                        <GSEControl name="gse1"/>
+                        <SampledValueControl name="smv2"/>
+                        <GSEControl name="gse3"/>
+                        <Inputs>
+                            <ExtRef iedName="ts3" srcLDInst="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse1"/>
+                        </Inputs>
                     </LN0>
                 </LDevice>
             </Server>
@@ -869,21 +823,12 @@ export const rpScd = `<?xml version="1.0" encoding="UTF-8"?>
             <Server>
                 <LDevice inst="lDevice">
                     <LN0 lnClass="LLN0" inst="">
-                        <ReportControl name="rp1">
-                            <RptEnabled>
-                                <ClientLN iedName="t3"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp2">
-                            <RptEnabled>
-                                <ClientLN iedName="t3"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp3">
-                            <RptEnabled>
-                                <ClientLN iedName="t3"/>
-                            </RptEnabled>
-                        </ReportControl>
+                        <GSEControl name="gse1"/>
+                        <SampledValueControl name="smv2"/>
+                        <GSEControl name="gse3"/>
+                        <Inputs>
+                            <ExtRef iedName="ts3" srcLDInst="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse1"/>
+                        </Inputs>
                     </LN0>
                 </LDevice>
             </Server>
@@ -893,30 +838,38 @@ export const rpScd = `<?xml version="1.0" encoding="UTF-8"?>
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
-                    <LN0 lnClass="LLN0" inst="">
-                        <ReportControl name="rp1">
-                            <RptEnabled>
-                                <ClientLN iedName="t3"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp2">
-                            <RptEnabled>
-                                <ClientLN iedName="t3"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp3">
-                            <RptEnabled>
-                                <ClientLN iedName="t3"/>
-                            </RptEnabled>
-                        </ReportControl>
+                    <LN0 prefix="" lnClass="LLN0">
+                        <GSEControl name="gse1"/>
+                        <SampledValueControl name="smv2"/>
+                        <GSEControl name="gse3"/>
+                        <Inputs>
+                            <ExtRef iedName="ts3" srcLDInst="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse1"/>
+                        </Inputs>
                     </LN0>
                 </LDevice>
             </Server>
         </AccessPoint>
     </IED>
-    <IED name="t4" esld:x="5" esld:y="13" esld:lx="6" esld:ly="14">
+    <IED name="ts4" esld:x="5" esld:y="13" esld:lx="6" esld:ly="14">
         <AccessPoint name="AP1">
-            <LN lnClass="IHMI" inst="1"/>
+            <Server>
+                <LDevice inst="lDevice">
+                    <LN0 lnClass="LLN0" inst="">
+                        <GSEControl name="gse1"/>
+                        <SampledValueControl name="smv2"/>
+                        <GSEControl name="gse3"/>
+                        <Inputs>
+                            <ExtRef iedName="s41" daName="stVal" srcLDInst="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse1"/>
+                            <ExtRef iedName="s41" daName="q" srcLDInst="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse1"/>
+                            <ExtRef iedName="s41" srcLNClass="LLN0" srcLNInst="" srcCBName="smv2"/>
+                            <ExtRef iedName="s41" srcLDInst="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse3"/>
+                            <ExtRef iedName="s42" srcLDInst="lDevice" srcLNInst="" srcCBName="gse1"/>
+                            <ExtRef iedName="s42" srcLDInst="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="smv2"/>
+                            <ExtRef srcLDInst="lDevice" srcLNClass="LLN0" srcLNInst="" srcCBName="gse3"/>
+                        </Inputs>
+                    </LN0>
+                </LDevice>
+            </Server>
         </AccessPoint>
     </IED>
 	<IED name="s41" esld:x="5" esld:y="12" esld:lx="5" esld:ly="12.5">
@@ -924,21 +877,9 @@ export const rpScd = `<?xml version="1.0" encoding="UTF-8"?>
             <Server>
                 <LDevice inst="lDevice">
                     <LN0 lnClass="LLN0" inst="">
-                        <ReportControl name="rp1">
-                            <RptEnabled>
-                                <ClientLN iedName="t4"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp2">
-                            <RptEnabled>
-                                <ClientLN iedName="t4"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp3">
-                            <RptEnabled>
-                                <ClientLN iedName="t4"/>
-                            </RptEnabled>
-                        </ReportControl>
+                        <GSEControl name="gse1"/>
+                        <SampledValueControl name="smv2"/>
+                        <GSEControl name="gse3"/>
                     </LN0>
                 </LDevice>
             </Server>
@@ -949,21 +890,9 @@ export const rpScd = `<?xml version="1.0" encoding="UTF-8"?>
             <Server>
                 <LDevice inst="lDevice">
                     <LN0 lnClass="LLN0" inst="">
-                        <ReportControl name="rp1">
-                            <RptEnabled>
-                                <ClientLN iedName="t4"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp2">
-                            <RptEnabled>
-                                <ClientLN iedName="t4"/>
-                            </RptEnabled>
-                        </ReportControl>
-                        <ReportControl name="rp3">
-                            <RptEnabled>
-                                <ClientLN iedName="t4"/>
-                            </RptEnabled>
-                        </ReportControl>
+                        <GSEControl name="gse1"/>
+                        <SampledValueControl name="smv2"/>
+                        <GSEControl name="gse3"/>
                     </LN0>
                 </LDevice>
             </Server>

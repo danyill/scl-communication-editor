@@ -5,7 +5,7 @@ import { identity } from '@openenergytools/scl-lib';
 import { attributes } from './sldUtil.js';
 import { Connection } from './types.js';
 
-const serviceColoring: Record<string, string> = {
+export const serviceColoring: Record<string, string> = {
   ReportControl: '#859900',
   GSEControl: '#268bd2',
   SampledValueControl: '#cb4b16',

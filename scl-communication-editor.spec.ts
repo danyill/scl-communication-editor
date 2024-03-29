@@ -33,14 +33,16 @@ describe('scl-communication-editor', () => {
     document.body.append(editor);
   });
 
+  afterEach(() => editor.remove());
+
   it('release selected IED looks like the latest snapshot', async () => {
     await editor.updateComplete;
 
-    await sendMouse({ type: 'move', position: [150, 155] });
-    await sendMouse({ type: 'click', position: [150, 155] });
+    await sendMouse({ type: 'move', position: [150, 200] });
+    await sendMouse({ type: 'click', position: [150, 200] });
 
-    await sendMouse({ type: 'move', position: [150, 120] });
-    await sendMouse({ type: 'click', position: [150, 120] });
+    await sendMouse({ type: 'move', position: [150, 170] });
+    await sendMouse({ type: 'click', position: [150, 170] });
 
     expect(editEvent).to.have.been.calledOnce;
     const edit = editEvent.args[0][0];
@@ -61,11 +63,11 @@ describe('scl-communication-editor', () => {
   });
 
   it('fires edit action on IED label move', async () => {
-    await sendMouse({ type: 'move', position: [180, 145] });
-    await sendMouse({ type: 'click', position: [180, 145] });
+    await sendMouse({ type: 'move', position: [180, 190] });
+    await sendMouse({ type: 'click', position: [180, 190] });
 
-    await sendMouse({ type: 'move', position: [180, 120] });
-    await sendMouse({ type: 'click', position: [180, 120] });
+    await sendMouse({ type: 'move', position: [180, 165] });
+    await sendMouse({ type: 'click', position: [180, 165] });
 
     expect(editEvent).to.have.been.calledOnce;
     const edit = editEvent.args[0][0];
