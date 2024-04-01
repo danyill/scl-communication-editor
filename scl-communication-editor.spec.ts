@@ -63,8 +63,8 @@ describe('scl-communication-editor', () => {
   });
 
   it('fires edit action on IED label move', async () => {
-    await sendMouse({ type: 'move', position: [180, 190] });
-    await sendMouse({ type: 'click', position: [180, 190] });
+    await sendMouse({ type: 'move', position: [180, 193] });
+    await sendMouse({ type: 'click', position: [180, 193] });
 
     await sendMouse({ type: 'move', position: [180, 165] });
     await sendMouse({ type: 'click', position: [180, 165] });

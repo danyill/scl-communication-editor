@@ -22,6 +22,19 @@ const pureSSD = new DOMParser().parseFromString(ssd, 'application/xml');
 const docWithIED = new DOMParser().parseFromString(scd, 'application/xml');
 const docComm = new DOMParser().parseFromString(commScd, 'application/xml');
 
+function wheel(editor: SlcCommunicationEditor, type: 'in' | 'out'): void {
+  const wheelEvent = new WheelEvent('wheel', {
+    deltaY: type === 'in' ? 1 : -1,
+    screenX: 300,
+    screenY: 200,
+    ctrlKey: true,
+  });
+
+  editor.shadowRoot
+    ?.querySelector('communication-mapping-editor')
+    ?.dispatchEvent(wheelEvent);
+}
+
 describe('scl-communication-editor', () => {
   let div: HTMLDivElement;
 
@@ -54,7 +67,7 @@ describe('scl-communication-editor', () => {
     });
   });
 
-  describe('without pure SSD loaded', () => {
+  describe('with pure SSD loaded', () => {
     let editor: SlcCommunicationEditor;
     beforeEach(async () => {
       editor = await fixture(
@@ -314,6 +327,70 @@ describe('scl-communication-editor', () => {
           `#14 filtered SampledValueControl connections`
         );
       });
+    });
+  });
+
+  describe('has zoom capabilities', () => {
+    let editor: SlcCommunicationEditor;
+    beforeEach(async () => {
+      editor = await fixture(
+        html`<scl-communication-editor
+          .doc=${pureSSD}
+        ></scl-communication-editor>`
+      );
+      div.prepend(editor);
+
+      await setViewport({ width: 1400, height: 1000 });
+    });
+
+    afterEach(async () => {
+      editor.remove();
+    });
+
+    it('on zoom in button click looks like the latest snapshot', async () => {
+      await editor.updateComplete;
+
+      await sendMouse({ type: 'click', position: [625, 24] });
+
+      await timeout(200);
+      await visualDiff(editor, `#15 on zoom in button`);
+    });
+
+    it('on zoom out button click looks like the latest snapshot', async () => {
+      await editor.updateComplete;
+
+      await sendMouse({ type: 'click', position: [672, 24] });
+
+      await timeout(200);
+      await visualDiff(editor, `#16 on zoom out button`);
+    });
+
+    it('on wheel zoom in looks like the latest snapshot', async () => {
+      await editor.updateComplete;
+
+      wheel(editor, 'in');
+      wheel(editor, 'in');
+      wheel(editor, 'in');
+      wheel(editor, 'in');
+      wheel(editor, 'in');
+      wheel(editor, 'in');
+
+      await timeout(200);
+      await visualDiff(editor, `#17 on wheel zoom in `);
+    });
+
+    it('on wheel zoom in looks like the latest snapshot', async () => {
+      await editor.updateComplete;
+
+      wheel(editor, 'out');
+      wheel(editor, 'out');
+      wheel(editor, 'out');
+      wheel(editor, 'out');
+      wheel(editor, 'out');
+      wheel(editor, 'out');
+
+      await timeout(200);
+      await visualDiff(editor, `#18 on wheel zoom out`);
     });
   });
 });

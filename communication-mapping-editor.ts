@@ -2,7 +2,8 @@ import { LitElement, nothing, css, html, svg, TemplateResult } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 
-// eslint-disable-next-line import/no-extraneous-dependencies
+import '@material/mwc-icon-button';
+
 import { newEditEvent } from '@openscd/open-scd-core';
 
 import { identity } from '@openenergytools/scl-lib';
@@ -78,6 +79,8 @@ export class CommunicationMappingEditor extends LitElement {
   @query('svg#sldContainer')
   sld!: SVGGraphicsElement;
 
+  @query('#container') container!: HTMLDivElement;
+
   svgCoordinates(clientX: number, clientY: number) {
     const p = new DOMPoint(clientX, clientY);
     const { x, y } = p.matrixTransform(this.sld.getScreenCTM()!.inverse());
@@ -145,6 +148,38 @@ export class CommunicationMappingEditor extends LitElement {
     this.reset();
     this.placing = element;
     this.placingOffset = offset;
+  }
+
+  onWheelZoom(evt: WheelEvent): void {
+    if (evt.ctrlKey) {
+      evt.preventDefault();
+      if (
+        (evt.deltaY < 0 && this.gridSize >= 10) ||
+        (evt.deltaY > 0 && this.gridSize <= 200)
+      ) {
+        const d = evt.deltaY < 0 ? -1 : 1;
+        const f = (this.gridSize + d) / this.gridSize;
+
+        const xs = this.container.scrollLeft;
+        const xa = evt.offsetX;
+
+        const dx = (f - 1) * (xs + xa);
+
+        const ys = this.container.scrollTop;
+        const ya = evt.offsetY - 57;
+
+        const dy = (f - 1) * (ys + ya);
+
+        this.container.scrollBy(dx, dy);
+        this.gridSize += d;
+      }
+    }
+  }
+
+  constructor() {
+    super();
+
+    this.addEventListener('wheel', this.onWheelZoom);
   }
 
   renderedLabelPosition(element: Element): Point {
@@ -292,6 +327,24 @@ export class CommunicationMappingEditor extends LitElement {
 
     return html`<div class="info-box">
       ${controlBlocks.map(controlBlock => this.renderService(controlBlock))}
+      <mwc-icon-button
+        class="zoom"
+        icon="zoom_in"
+        title="Zoom in"
+        @click="${() => {
+          this.gridSize += 4;
+        }}"
+      >
+      </mwc-icon-button>
+      <mwc-icon-button
+        class="zoom"
+        icon="zoom_out"
+        title="Zoom out"
+        @click="${() => {
+          this.gridSize -= 4;
+        }}"
+      >
+      </mwc-icon-button>
     </div>`;
   }
 
@@ -321,50 +374,50 @@ export class CommunicationMappingEditor extends LitElement {
 
     const svgConnection = svgConnectionGenerator(this.substation, this.links);
 
-    return html`<div id="container">
-      ${this.renderInfoBox()}
-      <style>
-        ${this.filterReport
-          ? `svg.connection.ReportControl {display: none}`
-          : nothing}
-        ${this.filterGOOSE
-          ? `svg.connection.GSEControl {display: none} `
-          : nothing}
-        ${this.filterSMV
-          ? `svg.connection.SampledValueControl {display: none} `
-          : nothing}
-      </style>
-      <svg
-        xmlns="${svgNs}"
-        xmlns:xlink="${xlinkNs}"
-        viewBox="0 0 ${w} ${h}"
-        width="${w * this.gridSize}"
-        height="${h * this.gridSize}"
-        id="sldContainer"
-        stroke-width="0.06"
-        fill="none"
-        @mousemove=${(e: MouseEvent) => {
-          const [x, y] = this.svgCoordinates(e.clientX, e.clientY);
-          this.mouseX = Math.floor(x);
-          this.mouseY = Math.floor(y);
-          this.mouseX2 = Math.round(x * 2) / 2;
-          this.mouseY2 = Math.round(y * 2) / 2;
-        }}
-      >
-        ${sldSvg(this.substation, this.gridSize)}
-        ${this.ieds.map(ied => this.renderIED(ied))}
-        ${this.ieds.map(ied => this.renderLabel(ied.element))}
-        ${placingLabelTarget} ${iedPlacingTarget}
-        ${this.links.map(link => svgConnection(link))}
-      </svg>
-    </div>`;
+    return html` ${this.renderInfoBox()}
+      <div id="container">
+        <style>
+          ${this.filterReport
+            ? `svg.connection.ReportControl {display: none}`
+            : nothing}
+          ${this.filterGOOSE
+            ? `svg.connection.GSEControl {display: none} `
+            : nothing}
+          ${this.filterSMV
+            ? `svg.connection.SampledValueControl {display: none} `
+            : nothing}
+        </style>
+        <svg
+          xmlns="${svgNs}"
+          xmlns:xlink="${xlinkNs}"
+          viewBox="0 0 ${w} ${h}"
+          width="${w * this.gridSize}"
+          height="${h * this.gridSize}"
+          id="sldContainer"
+          stroke-width="0.06"
+          fill="none"
+          @mousemove=${(e: MouseEvent) => {
+            const [x, y] = this.svgCoordinates(e.clientX, e.clientY);
+            this.mouseX = Math.floor(x);
+            this.mouseY = Math.floor(y);
+            this.mouseX2 = Math.round(x * 2) / 2;
+            this.mouseY2 = Math.round(y * 2) / 2;
+          }}
+        >
+          ${sldSvg(this.substation, this.gridSize)}
+          ${this.ieds.map(ied => this.renderIED(ied))}
+          ${this.ieds.map(ied => this.renderLabel(ied.element))}
+          ${placingLabelTarget} ${iedPlacingTarget}
+          ${this.links.map(link => svgConnection(link))}
+        </svg>
+      </div>`;
   }
 
   static styles = css`
     #container {
-      position: absolute;
       width: 100%;
-      height: 100%;
+      height: 80vh;
+      overflow: scroll;
     }
 
     g.equipment {
