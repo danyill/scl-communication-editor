@@ -32,6 +32,29 @@ type Count = {
   w: { index: number; total: number };
 };
 
+function tooltip(conn: Connection): string {
+  const cbName = conn.source.controlBlock.getAttribute('name');
+  const sourceIed = conn.source.ied.getAttribute('name');
+  const targetIed = conn.target.ied.getAttribute('name');
+
+  const data = conn.target.inputs.map(input => {
+    if (input.tagName === 'ClientLN') return input.getAttribute('lnClass');
+
+    const ldInst = input.getAttribute('ldInst')!;
+    const prefix = input.getAttribute('prefix') ?? '';
+    const lnClass = input.getAttribute('lnClass');
+    const lnInst = input.getAttribute('lnInst') ?? '';
+    const doName = input.getAttribute('doName');
+    const daName = input.getAttribute('daName') ?? '';
+
+    return `${ldInst}/${prefix}${lnClass}${lnInst}.${doName}.${daName}`;
+  });
+
+  return `${sourceIed}:${cbName} -> ${targetIed}
+   
+  \t${data.join('\n\t')}`;
+}
+
 function connDimensions(conn: Connection): ConnectionDimensions {
   const {
     pos: [sx, sy],
@@ -419,7 +442,9 @@ export function svgConnectionGenerator(
     return svg`<svg class="connection ${conn.source.controlBlock.tagName}"
           width="${w}"
           height="${h}">
-          <path d="${linkPath}" stroke="${color}" stroke-width="0.08"/>
+          <path d="${linkPath}" stroke="${color}" stroke-width="0.08"><title>${tooltip(
+      conn
+    )}</title></path>
           <path d="${arrowPath}" stroke="${color}" fill="${color}" stroke-width="0.08"/>
           </svg>`;
   };
