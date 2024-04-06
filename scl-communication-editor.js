@@ -4014,6 +4014,26 @@ const serviceColoring = {
     GSEControl: '#268bd2',
     SampledValueControl: '#cb4b16',
 };
+function tooltip(conn) {
+    const cbName = conn.source.controlBlock.getAttribute('name');
+    const sourceIed = conn.source.ied.getAttribute('name');
+    const targetIed = conn.target.ied.getAttribute('name');
+    const data = conn.target.inputs.map(input => {
+        var _a, _b, _c;
+        if (input.tagName === 'ClientLN')
+            return input.getAttribute('lnClass');
+        const ldInst = input.getAttribute('ldInst');
+        const prefix = (_a = input.getAttribute('prefix')) !== null && _a !== void 0 ? _a : '';
+        const lnClass = input.getAttribute('lnClass');
+        const lnInst = (_b = input.getAttribute('lnInst')) !== null && _b !== void 0 ? _b : '';
+        const doName = input.getAttribute('doName');
+        const daName = (_c = input.getAttribute('daName')) !== null && _c !== void 0 ? _c : '';
+        return `${ldInst}/${prefix}${lnClass}${lnInst}.${doName}.${daName}`;
+    });
+    return `${sourceIed}:${cbName} -> ${targetIed}
+   
+  \t${data.join('\n\t')}`;
+}
 function connDimensions(conn) {
     const { pos: [sx, sy], } = attributes(conn.source.ied);
     const { pos: [tx, ty], } = attributes(conn.target.ied);
@@ -4247,7 +4267,7 @@ function svgConnectionGenerator(substation, conns) {
         return b `<svg class="connection ${conn.source.controlBlock.tagName}"
           width="${w}"
           height="${h}">
-          <path d="${linkPath}" stroke="${color}" stroke-width="0.08"/>
+          <path d="${linkPath}" stroke="${color}" stroke-width="0.08"><title>${tooltip(conn)}</title></path>
           <path d="${arrowPath}" stroke="${color}" fill="${color}" stroke-width="0.08"/>
           </svg>`;
     };
