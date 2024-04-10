@@ -1,12 +1,13 @@
 import { LitElement, TemplateResult } from 'lit';
 import '@material/mwc-icon-button';
 import '@material/mwc-icon-button-toggle';
+import '@material/mwc-textfield';
 import { Point } from './foundation/sldUtil.js';
 import { IED, Connection } from './foundation/types.js';
 export declare class CommunicationMappingEditor extends LitElement {
     substation: Element;
     gridSize: number;
-    links: Connection[];
+    connections: Connection[];
     get ieds(): IED[];
     filterReport: boolean;
     filterGOOSE: boolean;
@@ -14,6 +15,10 @@ export declare class CommunicationMappingEditor extends LitElement {
     selectedIed?: Element;
     filterRcv: boolean;
     filterSend: boolean;
+    sourceIEDFilter: string;
+    targetIEDFilter: string;
+    cbNameFilter: string;
+    showFilterBox: boolean;
     editMode: boolean;
     showLabel: boolean;
     placing?: Element;
@@ -33,12 +38,16 @@ export declare class CommunicationMappingEditor extends LitElement {
     placeElement(element: Element, x: number, y: number): void;
     startPlacing(element: Element | undefined, offset?: Point): void;
     onWheelZoom(evt: WheelEvent): void;
-    isConnectionFiltered(conn: Connection): boolean;
+    filterCbName(conn: Connection): boolean;
+    filterTargetIED(conn: Connection): boolean;
+    filterSourceIED(conn: Connection): boolean;
+    filterConnections(conn: Connection): boolean;
     constructor();
     renderedLabelPosition(element: Element): Point;
     renderLabel(element: Element): TemplateResult<2>;
     renderedPosition(element: Element): Point;
     renderIED(ied: IED): TemplateResult<2>;
+    renderFilterBox(): TemplateResult;
     renderService(controlBlock: string): TemplateResult[];
     renderInfoBox(): TemplateResult;
     render(): TemplateResult<1>;
