@@ -2,8 +2,11 @@ import { LitElement, nothing, css, html, svg, TemplateResult } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 
+import '@material/mwc-button';
 import '@material/mwc-icon-button';
 import '@material/mwc-icon-button-toggle';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import '@material/mwc-fab';
 import '@material/mwc-textfield';
 import type { IconButtonToggle } from '@material/mwc-icon-button-toggle';
 
@@ -187,6 +190,20 @@ export class CommunicationMappingEditor extends LitElement {
     }
   }
 
+  clearFilter(): void {
+    this.sourceIEDFilter = '';
+    this.targetIEDFilter = '';
+    this.cbNameFilter = '';
+  }
+
+  activeFilter(): boolean {
+    return (
+      this.sourceIEDFilter !== '' ||
+      this.targetIEDFilter !== '' ||
+      this.cbNameFilter !== ''
+    );
+  }
+
   filterCbName(conn: Connection): boolean {
     if (this.cbNameFilter === '') return false;
 
@@ -366,8 +383,18 @@ export class CommunicationMappingEditor extends LitElement {
     if (!this.showFilterBox) return html``;
 
     return html`<div class="filter box" style="">
+      <h3 class="filter title">
+        Filter connections
+        <nav style="float: right;">
+          <mwc-icon-button
+            icon="close"
+            @click="${() => {
+              this.showFilterBox = false;
+            }}"
+          ></mwc-icon-button>
+        </nav>
+      </h3>
       <mwc-textfield
-        class="filter input"
         label="Source IED name"
         value="${this.sourceIEDFilter}"
         @input="${(evt: Event) => {
@@ -375,7 +402,6 @@ export class CommunicationMappingEditor extends LitElement {
         }}"
       ></mwc-textfield>
       <mwc-textfield
-        class="filter input"
         label="Target IED name"
         value="${this.targetIEDFilter}"
         @input="${(evt: Event) => {
@@ -383,7 +409,6 @@ export class CommunicationMappingEditor extends LitElement {
         }}"
       ></mwc-textfield>
       <mwc-textfield
-        class="filter input"
         label="Control Block name"
         value="${this.cbNameFilter}"
         @input="${(evt: Event) => {
@@ -391,6 +416,28 @@ export class CommunicationMappingEditor extends LitElement {
         }}"
       ></mwc-textfield>
     </div>`;
+  }
+
+  renderFilterFab(): TemplateResult {
+    return html`<nav class="filter button">
+      ${this.activeFilter()
+        ? html`<mwc-fab
+            class="filter refresh"
+            style="padding-right: 10px;"
+            extended
+            icon="refresh"
+            label="Clear"
+            @click="${() => {
+              this.clearFilter();
+            }}"
+          ></mwc-fab>`
+        : nothing}<mwc-fab
+        icon="filter_alt"
+        @click="${() => {
+          this.showFilterBox = true;
+        }}"
+      ></mwc-fab>
+    </nav>`;
   }
 
   renderService(controlBlock: string): TemplateResult[] {
@@ -490,14 +537,6 @@ export class CommunicationMappingEditor extends LitElement {
           this.showLabel = (evt.target as IconButtonToggle).on;
         }}"
       ></mwc-icon-button-toggle>
-      <mwc-icon-button-toggle
-        ?on=${this.showFilterBox}
-        onIcon="filter_list"
-        offIcon="filter_list_off"
-        @click="${(evt: Event) => {
-          this.showFilterBox = (evt.target as IconButtonToggle).on;
-        }}"
-      ></mwc-icon-button-toggle>
     </div>`;
   }
 
@@ -563,7 +602,7 @@ export class CommunicationMappingEditor extends LitElement {
           ${filteredConnections.map(link => svgConnection(link))}
         </svg>
       </div>
-      ${this.renderFilterBox()}`;
+      ${this.renderFilterFab()} ${this.renderFilterBox()}`;
   }
 
   static styles = css`
@@ -610,19 +649,37 @@ export class CommunicationMappingEditor extends LitElement {
       font-weight: 400;
     }
 
-    .filter {
+    .filter.box > mwc-textfield {
       padding: 10px;
     }
 
     .filter.box {
       width: 250px;
-      height: 230px;
+      height: 280px;
       position: fixed;
       bottom: 5px;
       right: 5px;
-      border: 2px solid;
+      border: 2px solid var(--oscd-theme-base01);
       background-color: var(--oscd-theme-base3);
       border-radius: 5px;
+    }
+
+    .filter.title {
+      color: var(--oscd-theme-base01);
+      font-family: var(--oscd-theme-text-font, 'Roboto');
+      font-weight: 300;
+      overflow: clip visible;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      margin: 0px;
+      line-height: 52px;
+      padding-left: 0.3em;
+    }
+
+    .filter.button {
+      position: fixed;
+      bottom: 15px;
+      right: 15px;
     }
   `;
 }

@@ -543,7 +543,7 @@ describe('scl-communication-editor', () => {
 
       await setViewport({ width: 1200, height: 800 });
 
-      await sendMouse({ type: 'click', position: [740, 24] });
+      await sendMouse({ type: 'click', position: [1160, 760] });
     });
 
     afterEach(async () => {
@@ -560,7 +560,7 @@ describe('scl-communication-editor', () => {
       await visualDiff(editor, `#26 filter source IED name`);
     });
 
-    it('on source IED name looks like the latest snapshot', async () => {
+    it('on target IED name looks like the latest snapshot', async () => {
       await editor.updateComplete;
 
       await sendMouse({ type: 'click', position: [1100, 660] });
@@ -570,7 +570,7 @@ describe('scl-communication-editor', () => {
       await visualDiff(editor, `#27 filter target IED name`);
     });
 
-    it('on source IED name looks like the latest snapshot', async () => {
+    it('on control block IED name looks like the latest snapshot', async () => {
       await editor.updateComplete;
 
       await sendMouse({ type: 'click', position: [1100, 740] });
@@ -578,6 +578,29 @@ describe('scl-communication-editor', () => {
 
       await timeout(200);
       await visualDiff(editor, `#28 filter control block name`);
+    });
+
+    it('indicates active filter looks like the latest snapshot', async () => {
+      await editor.updateComplete;
+
+      await sendMouse({ type: 'click', position: [1100, 740] });
+      await sendKeys({ type: 'gse3' });
+      await sendMouse({ type: 'click', position: [1160, 540] });
+
+      await timeout(200);
+      await visualDiff(editor, `#29 active filter indication`);
+    });
+
+    it('on filter clear looks like the latest snapshot', async () => {
+      await editor.updateComplete;
+
+      await sendMouse({ type: 'click', position: [1100, 740] });
+      await sendKeys({ type: 'gse3' });
+      await sendMouse({ type: 'click', position: [1160, 540] });
+      await sendMouse({ type: 'click', position: [1100, 760] });
+
+      await timeout(200);
+      await visualDiff(editor, `#30 clear filter`);
     });
   });
 });
