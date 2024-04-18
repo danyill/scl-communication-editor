@@ -1,2 +1,3 @@
 import { TemplateResult } from 'lit';
-export declare function sldSvg(substation: Element, gridSize?: number): TemplateResult;
+import { SldSvgOptions } from './sldUtil.js';
+export declare function sldSvg(substation: Element, options: SldSvgOptions): TemplateResult;

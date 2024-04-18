@@ -1,6 +1,8 @@
 import { LitElement, TemplateResult } from 'lit';
+import '@material/mwc-button';
 import '@material/mwc-icon-button';
 import '@material/mwc-icon-button-toggle';
+import '@material/mwc-fab';
 import '@material/mwc-textfield';
 import { Point } from './foundation/sldUtil.js';
 import { IED, Connection } from './foundation/types.js';
@@ -28,6 +30,7 @@ export declare class CommunicationMappingEditor extends LitElement {
     mouseY: number;
     mouseX2: number;
     mouseY2: number;
+    linkedEquipments: Element[];
     get idle(): boolean;
     sld: SVGGraphicsElement;
     container: HTMLDivElement;
@@ -38,16 +41,21 @@ export declare class CommunicationMappingEditor extends LitElement {
     placeElement(element: Element, x: number, y: number): void;
     startPlacing(element: Element | undefined, offset?: Point): void;
     onWheelZoom(evt: WheelEvent): void;
+    clearFilter(): void;
+    activeFilter(): boolean;
     filterCbName(conn: Connection): boolean;
     filterTargetIED(conn: Connection): boolean;
     filterSourceIED(conn: Connection): boolean;
     filterConnections(conn: Connection): boolean;
+    resetIedSelection(): void;
+    selectIED(ied: IED): void;
     constructor();
     renderedLabelPosition(element: Element): Point;
     renderLabel(element: Element): TemplateResult<2>;
     renderedPosition(element: Element): Point;
     renderIED(ied: IED): TemplateResult<2>;
     renderFilterBox(): TemplateResult;
+    renderFilterFab(): TemplateResult;
     renderService(controlBlock: string): TemplateResult[];
     renderInfoBox(): TemplateResult;
     render(): TemplateResult<1>;
