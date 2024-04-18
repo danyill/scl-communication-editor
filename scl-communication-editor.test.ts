@@ -4,7 +4,7 @@ import { sendKeys, sendMouse, setViewport } from '@web/test-runner-commands';
 
 import { visualDiff } from '@web/test-runner-visual-regression';
 
-import { commScd, scd, ssd } from './testfiles.js';
+import { commScd, lNodeConn, scd, ssd } from './testfiles.js';
 
 import SlcCommunicationEditor from './scl-communication-editor.js';
 
@@ -21,6 +21,7 @@ customElements.define('scl-communication-editor', SlcCommunicationEditor);
 const pureSSD = new DOMParser().parseFromString(ssd, 'application/xml');
 const docWithIED = new DOMParser().parseFromString(scd, 'application/xml');
 const docComm = new DOMParser().parseFromString(commScd, 'application/xml');
+const docLNode = new DOMParser().parseFromString(lNodeConn, 'application/xml');
 
 function wheel(editor: SlcCommunicationEditor, type: 'in' | 'out'): void {
   const wheelEvent = new WheelEvent('wheel', {
@@ -397,68 +398,106 @@ describe('scl-communication-editor', () => {
 
   describe('with selected IED', () => {
     let editor: SlcCommunicationEditor;
-    beforeEach(async () => {
-      editor = await fixture(
-        html`<scl-communication-editor
-          .doc=${docComm}
-        ></scl-communication-editor>`
-      );
-      div.prepend(editor);
 
-      await setViewport({ width: 1200, height: 800 });
+    describe('in a zero line view', () => {
+      beforeEach(async () => {
+        editor = await fixture(
+          html`<scl-communication-editor
+            .doc=${docComm}
+          ></scl-communication-editor>`
+        );
+        div.prepend(editor);
 
-      await sendMouse({ type: 'click', position: [172, 220] });
+        await setViewport({ width: 1200, height: 800 });
+
+        await sendMouse({ type: 'click', position: [172, 220] });
+      });
+
+      afterEach(async () => {
+        editor.remove();
+      });
+
+      it('per default looks like the latest snapshot', async () => {
+        await editor.updateComplete;
+        await timeout(200);
+        await visualDiff(editor, `#19 filter on IED select`);
+      });
+
+      it('with filtered receiving messages looks like the latest snapshot', async () => {
+        await editor.updateComplete;
+
+        await sendMouse({ type: 'click', position: [577, 24] });
+
+        await timeout(200);
+
+        await visualDiff(editor, `#20 filter receiving messages`);
+      });
+
+      it('with filtered sending messages looks like the latest snapshot', async () => {
+        await editor.updateComplete;
+
+        await sendMouse({ type: 'click', position: [638, 24] });
+
+        await timeout(200);
+
+        await visualDiff(editor, `#20 filter sending messages`);
+      });
+
+      it('with filtered sending and receiving messages looks like the latest snapshot', async () => {
+        await editor.updateComplete;
+
+        await sendMouse({ type: 'click', position: [577, 24] });
+        await sendMouse({ type: 'click', position: [638, 24] });
+
+        await timeout(200);
+
+        await visualDiff(editor, `#21 filter sending and receiving messages`);
+      });
+
+      it('with IEd unselcted looks like the latest snapshot', async () => {
+        await editor.updateComplete;
+
+        await sendMouse({ type: 'click', position: [172, 220] });
+
+        await timeout(200);
+
+        await visualDiff(editor, `#22 un done IED selection`);
+      });
     });
 
-    afterEach(async () => {
-      editor.remove();
-    });
+    describe('in a SLD view', () => {
+      beforeEach(async () => {
+        editor = await fixture(
+          html`<scl-communication-editor
+            .doc=${docLNode}
+          ></scl-communication-editor>`
+        );
+        div.prepend(editor);
 
-    it('per default looks like the latest snapshot', async () => {
-      await editor.updateComplete;
-      await timeout(200);
-      await visualDiff(editor, `#19 filter on IED select`);
-    });
+        await setViewport({ width: 600, height: 800 });
+      });
 
-    it('with filtered receiving messages looks like the latest snapshot', async () => {
-      await editor.updateComplete;
+      afterEach(async () => {
+        editor.remove();
+      });
 
-      await sendMouse({ type: 'click', position: [577, 24] });
+      it('and BCU selected selected looks like the latest snapshot', async () => {
+        await editor.updateComplete;
 
-      await timeout(200);
+        await sendMouse({ type: 'click', position: [270, 175] });
 
-      await visualDiff(editor, `#20 filter receiving messages`);
-    });
+        await timeout(200);
+        await visualDiff(editor, `#31 BCU selected`);
+      });
 
-    it('with filtered sending messages looks like the latest snapshot', async () => {
-      await editor.updateComplete;
+      it('and MU selected selected looks like the latest snapshot', async () => {
+        await editor.updateComplete;
 
-      await sendMouse({ type: 'click', position: [638, 24] });
+        await sendMouse({ type: 'click', position: [270, 368] });
 
-      await timeout(200);
-
-      await visualDiff(editor, `#20 filter sending messages`);
-    });
-
-    it('with filtered sending and receiving messages looks like the latest snapshot', async () => {
-      await editor.updateComplete;
-
-      await sendMouse({ type: 'click', position: [577, 24] });
-      await sendMouse({ type: 'click', position: [638, 24] });
-
-      await timeout(200);
-
-      await visualDiff(editor, `#21 filter sending and receiving messages`);
-    });
-
-    it('with IEd unselcted looks like the latest snapshot', async () => {
-      await editor.updateComplete;
-
-      await sendMouse({ type: 'click', position: [172, 220] });
-
-      await timeout(200);
-
-      await visualDiff(editor, `#22 un done IED selection`);
+        await timeout(200);
+        await visualDiff(editor, `#32 MU selected`);
+      });
     });
   });
 

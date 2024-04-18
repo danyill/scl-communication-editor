@@ -85,6 +85,8 @@ export class CommunicationMappingEditor extends LitElement {
 
   @state() mouseY2 = 0;
 
+  @state() linkedEquipments: Element[] = [];
+
   @state()
   get idle(): boolean {
     return !(this.placing || this.placingLabel);
@@ -259,6 +261,24 @@ export class CommunicationMappingEditor extends LitElement {
     return !(service || ied || source || target || cbName || receive || send);
   }
 
+  resetIedSelection(): void {
+    this.selectedIed = undefined;
+    this.linkedEquipments = [];
+  }
+
+  selectIED(ied: IED): void {
+    if (this.selectedIed !== ied.element) {
+      this.selectedIed = ied.element;
+      this.linkedEquipments = Array.from(
+        this.selectedIed.ownerDocument.querySelectorAll(
+          `ConductingEquipment LNode[iedName="${this.selectedIed.getAttribute(
+            'name'
+          )}"]`
+        )
+      ).map(lNode => lNode.closest('ConductingEquipment')!);
+    } else this.resetIedSelection();
+  }
+
   constructor() {
     super();
 
@@ -353,8 +373,7 @@ export class CommunicationMappingEditor extends LitElement {
       handleClick = () => this.startPlacing(ied.element);
     else if (!this.editMode)
       handleClick = () => {
-        if (this.selectedIed !== ied.element) this.selectedIed = ied.element;
-        else this.selectedIed = undefined;
+        this.selectIED(ied);
       };
 
     return svg`<svg
@@ -508,7 +527,7 @@ export class CommunicationMappingEditor extends LitElement {
         offIcon="edit_off"
         @click="${(evt: Event) => {
           this.editMode = (evt.target as IconButtonToggle).on;
-          this.selectedIed = undefined;
+          this.resetIedSelection();
         }}"
       ></mwc-icon-button-toggle>
       <mwc-icon-button
@@ -576,7 +595,9 @@ export class CommunicationMappingEditor extends LitElement {
     return html` ${this.renderInfoBox()}
       <div id="container">
         <style>
-          ${this.showLabel ? nothing : `.label:not(.ied) {display: none} `}
+          ${this.showLabel
+            ? nothing
+            : `.label:not(.ied):not(.linked) {display: none} `}
         </style>
         <svg
           xmlns="${svgNs}"
@@ -595,7 +616,10 @@ export class CommunicationMappingEditor extends LitElement {
             this.mouseY2 = Math.round(y * 2) / 2;
           }}
         >
-          ${sldSvg(this.substation, this.gridSize)}
+          ${sldSvg(this.substation, {
+            gridSize: this.gridSize,
+            linkedEquipments: this.linkedEquipments,
+          })}
           ${this.ieds.map(ied => this.renderIED(ied))}
           ${this.ieds.map(ied => this.renderLabel(ied.element))}
           ${placingLabelTarget} ${iedPlacingTarget}
@@ -613,7 +637,7 @@ export class CommunicationMappingEditor extends LitElement {
       background-color: white;
     }
 
-    g.equipment {
+    g.equipment:not(.linked) {
       opacity: 0.2;
     }
 
@@ -625,7 +649,7 @@ export class CommunicationMappingEditor extends LitElement {
       opacity: 0.2;
     }
 
-    g.label:not(.ied) {
+    g.label:not(.ied):not(.linked) {
       opacity: 0.2;
     }
 
@@ -680,6 +704,11 @@ export class CommunicationMappingEditor extends LitElement {
       position: fixed;
       bottom: 15px;
       right: 15px;
+    }
+
+    .linked > rect {
+      fill: black;
+      opacity: 0.1;
     }
   `;
 }

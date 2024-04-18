@@ -1115,3 +1115,140 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
         </AccessPoint>
     </IED>
 </SCL>`;
+
+export const lNodeConn = `<?xml version="1.0" encoding="UTF-8"?>
+<SCL xmlns="http://www.iec.ch/61850/2003/SCL" version="2007" revision="B" release="4" xmlns:esld="https://transpower.co.nz/SCL/SSD/SLD/v0">
+	<Header id="project"/>
+	<Substation name="AA1" esld:w="11" esld:h="15">
+		<VoltageLevel name="E1" esld:x="1" esld:y="1" esld:lx="1" esld:ly="1.5" esld:w="9" esld:h="13">
+			<Bay name="BB2" esld:w="5" esld:x="2" esld:y="2" esld:lx="2" esld:ly="3" esld:h="1">
+				<ConnectivityNode name="L" pathName="AA1/E1/BB2/L">
+					<Private type="Transpower-SLD-Vertices">
+						<esld:Section bus="true">
+							<esld:Vertex esld:x="2.5" esld:y="2.5"/>
+							<esld:Vertex esld:x="5.5" esld:y="2.5"/>
+						</esld:Section>
+						<esld:Section>
+							<esld:Vertex esld:x="5.5" esld:y="4.16" esld:uuid="462d3451-bb36-4653-9211-88ec06a918ef"/>
+							<esld:Vertex esld:x="5.5" esld:y="2.5"/>
+						</esld:Section>
+						<esld:Section bus="true">
+							<esld:Vertex esld:x="5.5" esld:y="2.5"/>
+							<esld:Vertex esld:x="6.5" esld:y="2.5"/>
+						</esld:Section>
+					</Private>
+				</ConnectivityNode>
+			</Bay>
+			<Bay name="BB1" esld:w="5" esld:x="2" esld:y="1" esld:lx="2" esld:ly="2" esld:h="1">
+				<ConnectivityNode name="L" pathName="AA1/E1/BB1/L">
+					<Private type="Transpower-SLD-Vertices">
+						<esld:Section bus="true">
+							<esld:Vertex esld:x="2.5" esld:y="1.5"/>
+							<esld:Vertex esld:x="3.5" esld:y="1.5"/>
+						</esld:Section>
+						<esld:Section>
+							<esld:Vertex esld:x="3.5" esld:y="4.16" esld:uuid="855c1d45-8714-4643-adb1-39ad15dda601"/>
+							<esld:Vertex esld:x="3.5" esld:y="1.5"/>
+						</esld:Section>
+						<esld:Section bus="true">
+							<esld:Vertex esld:x="3.5" esld:y="1.5"/>
+							<esld:Vertex esld:x="6.5" esld:y="1.5"/>
+						</esld:Section>
+					</Private>
+				</ConnectivityNode>
+			</Bay>
+			<Bay name="Q01" esld:x="2" esld:y="3" esld:lx="1.5" esld:ly="3.5" esld:w="7" esld:h="10">
+				<ConductingEquipment type="IFL" name="IFL1" esld:x="4" esld:y="11" esld:lx="5" esld:ly="12">
+					<Terminal esld:uuid="2ea05a09-49be-46e7-b93e-9a8c81c59ced" name="T1" connectivityNode="AA1/E1/Q01/L1" substationName="AA1" voltageLevelName="E1" bayName="Q01" cNodeName="L1"/>
+				</ConductingEquipment>
+				<ConductingEquipment type="DIS" name="DIS3" esld:x="3" esld:y="10" esld:lx="3" esld:ly="11.5" esld:rot="1">
+					<LNode iedName="SCU" lnClass="XSWI" />
+					<LNode iedName="BCU" lnClass="CSWI" />
+					<Terminal esld:uuid="3f297da1-6776-43ee-9aae-63ed40ac5acd" name="T1" connectivityNode="AA1/E1/Q01/L1" substationName="AA1" voltageLevelName="E1" bayName="Q01" cNodeName="L1"/>
+					<Terminal name="T2" cNodeName="grounded" substationName="AA1" voltageLevelName="E1" bayName="Q01" connectivityNode="AA1/E1/Q01/grounded"/>
+				</ConductingEquipment>
+				<ConductingEquipment type="VTR" name="VTR1" esld:x="5" esld:y="9" esld:lx="6" esld:ly="10" esld:rot="3">
+					<LNode iedName="MU" lnClass="TVTR" />
+					<Terminal esld:uuid="5adec2e3-5890-4a24-a113-483b218d4c75" name="T1" connectivityNode="AA1/E1/Q01/L1" substationName="AA1" voltageLevelName="E1" bayName="Q01" cNodeName="L1"/>
+				</ConductingEquipment>
+				<ConductingEquipment type="CTR" name="CTR1" esld:x="4" esld:y="8" esld:lx="5" esld:ly="9">
+					<LNode iedName="MU" lnClass="TCTR" />
+					<Terminal esld:uuid="0f37eeab-227b-41d5-89e5-92bd3515e7c5" name="T1" connectivityNode="AA1/E1/Q01/L2" substationName="AA1" voltageLevelName="E1" bayName="Q01" cNodeName="L2"/>
+					<Terminal esld:uuid="bf59f14e-b472-45c4-9ebc-8e2e31f61af2" name="T2" connectivityNode="AA1/E1/Q01/L1" substationName="AA1" voltageLevelName="E1" bayName="Q01" cNodeName="L1"/>
+				</ConductingEquipment>
+				<ConductingEquipment type="CBR" name="CBR1" esld:x="4" esld:y="6" esld:lx="5" esld:ly="7">
+					<LNode iedName="SCU" lnClass="XCBR" />
+					<LNode iedName="BCU" lnClass="CSWI" />
+					<Terminal esld:uuid="dc138983-04a1-4008-978a-0403f227b8cc" name="T1" connectivityNode="AA1/E1/Q01/L3" substationName="AA1" voltageLevelName="E1" bayName="Q01" cNodeName="L3"/>
+					<Terminal esld:uuid="404bef16-05a7-47ea-a404-1c9acb1a6974" name="T2" connectivityNode="AA1/E1/Q01/L2" substationName="AA1" voltageLevelName="E1" bayName="Q01" cNodeName="L2"/>
+				</ConductingEquipment>
+				<ConductingEquipment type="DIS" name="DIS2" esld:x="5" esld:y="4" esld:lx="6" esld:ly="5">
+					<LNode iedName="SCU" lnClass="XSWI" />
+					<LNode iedName="BCU" lnClass="CSWI" />
+					<Terminal esld:uuid="462d3451-bb36-4653-9211-88ec06a918ef" name="T1" connectivityNode="AA1/E1/BB2/L" substationName="AA1" voltageLevelName="E1" bayName="BB2" cNodeName="L"/>
+					<Terminal esld:uuid="306a6d48-a7ec-43ec-abd2-a76214a9c4b4" name="T2" connectivityNode="AA1/E1/Q01/L3" substationName="AA1" voltageLevelName="E1" bayName="Q01" cNodeName="L3"/>
+				</ConductingEquipment>
+				<ConductingEquipment type="DIS" name="DIS1" esld:x="3" esld:y="4" esld:lx="4" esld:ly="5">
+					<LNode iedName="SCU" lnClass="XSWI" />
+					<LNode iedName="BCU" lnClass="CSWI" />
+					<Terminal esld:uuid="855c1d45-8714-4643-adb1-39ad15dda601" name="T1" connectivityNode="AA1/E1/BB1/L" substationName="AA1" voltageLevelName="E1" bayName="BB1" cNodeName="L"/>
+					<Terminal esld:uuid="7a1f08c2-63ec-4751-a74b-efd934648254" name="T2" connectivityNode="AA1/E1/Q01/L3" substationName="AA1" voltageLevelName="E1" bayName="Q01" cNodeName="L3"/>
+				</ConductingEquipment>
+				<ConnectivityNode name="grounded" pathName="AA1/E1/Q01/grounded"/>
+				<ConnectivityNode name="L3" pathName="AA1/E1/Q01/L3">
+					<Private type="Transpower-SLD-Vertices">
+						<esld:Section>
+							<esld:Vertex esld:x="4.5" esld:y="6.16" esld:uuid="dc138983-04a1-4008-978a-0403f227b8cc"/>
+							<esld:Vertex esld:x="4.5" esld:y="5.5"/>
+						</esld:Section>
+						<esld:Section>
+							<esld:Vertex esld:x="3.5" esld:y="4.84" esld:uuid="7a1f08c2-63ec-4751-a74b-efd934648254"/>
+							<esld:Vertex esld:x="3.5" esld:y="5.5"/>
+							<esld:Vertex esld:x="4.5" esld:y="5.5"/>
+						</esld:Section>
+						<esld:Section>
+							<esld:Vertex esld:x="4.5" esld:y="5.5"/>
+							<esld:Vertex esld:x="5.5" esld:y="5.5"/>
+							<esld:Vertex esld:x="5.5" esld:y="4.84" esld:uuid="306a6d48-a7ec-43ec-abd2-a76214a9c4b4"/>
+						</esld:Section>
+					</Private>
+				</ConnectivityNode>
+				<ConnectivityNode name="L2" pathName="AA1/E1/Q01/L2">
+					<Private type="Transpower-SLD-Vertices">
+						<esld:Section>
+							<esld:Vertex esld:x="4.5" esld:y="8.16" esld:uuid="0f37eeab-227b-41d5-89e5-92bd3515e7c5"/>
+							<esld:Vertex esld:x="4.5" esld:y="6.84" esld:uuid="404bef16-05a7-47ea-a404-1c9acb1a6974"/>
+						</esld:Section>
+					</Private>
+				</ConnectivityNode>
+				<ConnectivityNode name="L1" pathName="AA1/E1/Q01/L1">
+					<Private type="Transpower-SLD-Vertices">
+						<esld:Section>
+							<esld:Vertex esld:x="5.16" esld:y="9.5" esld:uuid="5adec2e3-5890-4a24-a113-483b218d4c75"/>
+							<esld:Vertex esld:x="4.5" esld:y="9.5"/>
+						</esld:Section>
+						<esld:Section>
+							<esld:Vertex esld:x="4.5" esld:y="11.16" esld:uuid="2ea05a09-49be-46e7-b93e-9a8c81c59ced"/>
+							<esld:Vertex esld:x="4.5" esld:y="10.5"/>
+						</esld:Section>
+						<esld:Section>
+							<esld:Vertex esld:x="4.5" esld:y="10.5"/>
+							<esld:Vertex esld:x="4.5" esld:y="9.5"/>
+						</esld:Section>
+						<esld:Section>
+							<esld:Vertex esld:x="4.5" esld:y="9.5"/>
+							<esld:Vertex esld:x="4.5" esld:y="8.84" esld:uuid="bf59f14e-b472-45c4-9ebc-8e2e31f61af2"/>
+						</esld:Section>
+						<esld:Section>
+							<esld:Vertex esld:x="3.84" esld:y="10.5" esld:uuid="3f297da1-6776-43ee-9aae-63ed40ac5acd"/>
+							<esld:Vertex esld:x="4.5" esld:y="10.5"/>
+						</esld:Section>
+					</Private>
+				</ConnectivityNode>
+			</Bay>
+		</VoltageLevel>
+	</Substation>
+	<IED name="BCU" esld:x="8" esld:y="3" esld:lx="9" esld:ly="4"/>
+	<IED name="SCU" esld:x="7" esld:y="6" esld:lx="8" esld:ly="7"/>
+	<IED name="MU" esld:x="8" esld:y="9" esld:lx="9" esld:ly="10"/>
+</SCL>`;

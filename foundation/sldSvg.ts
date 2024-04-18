@@ -18,6 +18,7 @@ import {
   ringedEqTypes,
   robotoDataURL,
   sldNs,
+  SldSvgOptions,
   svgNs,
   xlinkNs,
   xmlBoolean,
@@ -43,7 +44,7 @@ function renderedLabelPosition(element: Element): Point {
   return [x, y];
 }
 
-function renderLabel(element: Element) {
+function renderLabel(element: Element, linkedEquipments: Element[]) {
   const deg = 0;
   const text: string | null | TemplateResult<2>[] =
     element.getAttribute('name');
@@ -64,6 +65,7 @@ function renderLabel(element: Element) {
       element.tagName === 'VoltageLevel',
     ied: element.tagName === 'IED',
     equipment: element.tagName === 'ConductingEquipment',
+    linked: linkedEquipments.includes(element),
   });
   return svg`<g class="${classes}" id="label:${id}"
                  transform="rotate(${deg} ${x + 0.5} ${y - 0.5})">
@@ -432,7 +434,7 @@ function renderConnectivityNode(cNode: Element) {
       </g>`;
 }
 
-function renderEquipment(equipment: Element) {
+function renderEquipment(equipment: Element, linkedEquipments: Element[]) {
   const [x, y] = renderedPosition(equipment);
   const { flip, rot } = attributes(equipment);
   const deg = 90 * rot;
@@ -469,7 +471,10 @@ function renderEquipment(equipment: Element) {
                 stroke-width="0.06" marker-start="url(#grounded)" />`
       : nothing;
 
-  return svg`<g class="${classMap({ equipment: true })}"
+  return svg`<g class="${classMap({
+    equipment: true,
+    linked: linkedEquipments.includes(equipment),
+  })}"
     id="${identity(equipment)}"
     transform="translate(${x} ${y}) rotate(${deg} 0.5 0.5)${
     flip ? ' scale(-1,1) translate(-1 0)' : ''
@@ -488,7 +493,10 @@ function renderEquipment(equipment: Element) {
     </g>`;
 }
 
-function renderContainer(bayOrVL: Element): TemplateResult<2> {
+function renderContainer(
+  bayOrVL: Element,
+  selectedElements: Element[]
+): TemplateResult<2> {
   const isVL = bayOrVL.tagName === 'VoltageLevel';
 
   const [x, y] = renderedPosition(bayOrVL);
@@ -506,18 +514,21 @@ function renderContainer(bayOrVL: Element): TemplateResult<2> {
         stroke="${isVL ? '#2aa198' : '#6c71c4'}" />
       ${Array.from(bayOrVL.children)
         .filter(isBay)
-        .map(bay => renderContainer(bay))}
+        .map(bay => renderContainer(bay, selectedElements))}
       ${Array.from(bayOrVL.children)
         .filter(child => child.tagName === 'ConductingEquipment')
-        .map(equipment => renderEquipment(equipment))}
+        .map(equipment => renderEquipment(equipment, selectedElements))}
       ${Array.from(bayOrVL.children)
         .filter(child => child.tagName === 'PowerTransformer')
         .map(equipment => renderPowerTransformer(equipment))}
       </g>`;
 }
 
-export function sldSvg(substation: Element, gridSize?: number): TemplateResult {
-  const nested = !gridSize;
+export function sldSvg(
+  substation: Element,
+  options: SldSvgOptions
+): TemplateResult {
+  const nested = !options.gridSize;
 
   const {
     dim: [w, h],
@@ -527,8 +538,8 @@ export function sldSvg(substation: Element, gridSize?: number): TemplateResult {
     xmlns="${svgNs}"
     xmlns:xlink="${xlinkNs}"
     ${nested ? nothing : `viewBox = '0 0 ${w} ${h}'`}
-    ${nested ? nothing : `width="${w * gridSize}"`}
-    ${nested ? nothing : `height="${h * gridSize}"`}
+    ${nested ? nothing : `width="${w * options.gridSize!}"`}
+    ${nested ? nothing : `height="${h * options.gridSize!}"`}
     id="sld"
     stroke-width="0.06"
     fill="none"
@@ -545,7 +556,7 @@ export function sldSvg(substation: Element, gridSize?: number): TemplateResult {
     <rect width="100%" height="100%" fill="white" />
     ${Array.from(substation.children)
       .filter(child => child.tagName === 'VoltageLevel')
-      .map(vl => svg`${renderContainer(vl)}`)}
+      .map(vl => svg`${renderContainer(vl, options.linkedEquipments)}`)}
     ${Array.from(substation.querySelectorAll('ConnectivityNode'))
       .filter(
         node =>
@@ -567,6 +578,6 @@ export function sldSvg(substation: Element, gridSize?: number): TemplateResult {
       substation.querySelectorAll(
         'VoltageLevel, Bay, ConductingEquipment, PowerTransformer, Line'
       )
-    ).map(element => renderLabel(element))}
+    ).map(element => renderLabel(element, options.linkedEquipments))}
   </svg>`;
 }
