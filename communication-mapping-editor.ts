@@ -10,14 +10,16 @@ import '@material/mwc-fab';
 import '@material/mwc-textfield';
 import type { IconButtonToggle } from '@material/mwc-icon-button-toggle';
 
-import { newEditEvent } from '@openscd/open-scd-core';
+import { Edit, newEditEvent } from '@openscd/open-scd-core';
 
-import { identity } from '@openenergytools/scl-lib';
+import { getReference, identity } from '@openenergytools/scl-lib';
 
 import { sldSvg } from './foundation/sldSvg.js';
 import {
   Point,
   attributes,
+  containsRect,
+  reparentElement,
   sldNs,
   sldPrefix,
   svgNs,
@@ -40,11 +42,23 @@ export class CommunicationMappingEditor extends LitElement {
   @state()
   get ieds(): IED[] {
     return Array.from(
-      this.substation.ownerDocument.querySelectorAll(':root > IED')
-    ).map(ied => ({
-      element: ied,
-      name: ied.getAttribute('name')!,
-    }));
+      this.substation.ownerDocument.getElementsByTagNameNS(sldNs, 'IEDName')
+    )
+      .map(iedName => {
+        const ied = this.substation.ownerDocument.querySelector(
+          `:scope > IED[name="${
+            iedName.getAttributeNS(sldNs, 'name') ?? 'Unknown IED'
+          }"]`
+        );
+        return {
+          element: iedName,
+          ied,
+          name: iedName.getAttribute('name')!,
+        };
+      })
+      .filter(
+        (iedName): iedName is IED & { ied: Element } => iedName.ied !== null
+      );
   }
 
   @state() filterReport = false;
@@ -103,6 +117,22 @@ export class CommunicationMappingEditor extends LitElement {
     return [x, y].map(coord => Math.max(0, coord)) as Point;
   }
 
+  handleKeydown = ({ key }: KeyboardEvent) => {
+    if (key === 'Escape') this.reset();
+  };
+
+  connectedCallback() {
+    // eslint-disable-next-line wc/guard-super-call
+    super.connectedCallback();
+    window.addEventListener('keydown', this.handleKeydown);
+  }
+
+  disconnectedCallback() {
+    // eslint-disable-next-line wc/guard-super-call
+    super.disconnectedCallback();
+    window.removeEventListener('keydown', this.handleKeydown);
+  }
+
   reset() {
     this.placing = undefined;
     this.placingLabel = undefined;
@@ -128,6 +158,23 @@ export class CommunicationMappingEditor extends LitElement {
   }
 
   placeElement(element: Element, x: number, y: number) {
+    const edits: Edit[] = [];
+
+    const oldParent = element.parentElement;
+
+    const newParent =
+      Array.from(
+        this.substation.querySelectorAll(':scope > VoltageLevel > Bay')
+      )
+        .concat(
+          Array.from(this.substation.querySelectorAll(':scope > VoltageLevel'))
+        )
+        .find(vlOrBay => containsRect(vlOrBay, x, y, 1, 1)) || this.substation;
+
+    if (element.parentElement !== newParent) {
+      edits.push(...reparentElement(element, newParent));
+    }
+
     const {
       pos: [oldX, oldY],
       label: [oldLX, oldLY],
@@ -139,23 +186,64 @@ export class CommunicationMappingEditor extends LitElement {
     const lx = oldLX;
     const ly = oldLY;
 
-    const update = {
+    edits.push({
       element,
       attributes: {
-        [`${sldPrefix}:x`]: { namespaceURI: sldNs, value: x.toString() },
-        [`${sldPrefix}:y`]: { namespaceURI: sldNs, value: y.toString() },
-        [`${sldPrefix}:lx`]: {
-          namespaceURI: sldNs,
-          value: (lx + dx).toString(),
-        },
-        [`${sldPrefix}:ly`]: {
-          namespaceURI: sldNs,
-          value: (ly + dy).toString(),
-        },
+        x: { namespaceURI: sldNs, value: x.toString() },
+        y: { namespaceURI: sldNs, value: y.toString() },
+        lx: { namespaceURI: sldNs, value: (lx + dx).toString() },
+        ly: { namespaceURI: sldNs, value: (ly + dy).toString() },
       },
-    };
+    });
 
-    this.dispatchEvent(newEditEvent(update));
+    this.dispatchEvent(newEditEvent(edits));
+
+    // wrap IEDName elements within Private element if required
+    const enclosingEdits: Edit[] = [];
+    if (
+      element.localName === 'IEDName' &&
+      element.namespaceURI === sldNs &&
+      element.parentElement &&
+      element.parentElement?.tagName !== 'Private'
+    ) {
+      let privateElement: Element | null = element.parentElement!.querySelector(
+        ':scope > Private[type="OpenSCD-Linked-IEDs"]'
+      );
+
+      if (!privateElement) {
+        privateElement = this.substation.ownerDocument.createElementNS(
+          this.substation.ownerDocument.documentElement.namespaceURI,
+          'Private'
+        );
+        privateElement.setAttribute('type', 'OpenSCD-Linked-IEDs');
+      }
+
+      privateElement.appendChild(element.cloneNode());
+
+      enclosingEdits.push(
+        {
+          parent: element.parentElement!,
+          node: privateElement,
+          reference: getReference(element.parentElement!, 'Private'),
+        },
+        {
+          node: element,
+        }
+      );
+    }
+
+    // remove empty Private element if required
+    if (
+      element.localName === 'IEDName' &&
+      oldParent?.tagName === 'Private' &&
+      oldParent?.getAttribute('type') === 'OpenSCD-Linked-IEDs' &&
+      oldParent.childElementCount === 0
+    ) {
+      // TODO: In next API release, dispatch with "squash" to support undo/redo more cleanly
+      enclosingEdits.push({ node: oldParent });
+    }
+
+    if (enclosingEdits.length) this.dispatchEvent(newEditEvent(enclosingEdits));
 
     this.reset();
   }
@@ -246,8 +334,8 @@ export class CommunicationMappingEditor extends LitElement {
 
     const ied =
       !!this.selectedIed &&
-      conn.source.ied !== this.selectedIed &&
-      conn.target.ied !== this.selectedIed;
+      conn.source.iedName !== this.selectedIed &&
+      conn.target.iedName !== this.selectedIed;
 
     const source = this.filterSourceIED(conn);
 
@@ -255,8 +343,8 @@ export class CommunicationMappingEditor extends LitElement {
 
     const cbName = this.filterCbName(conn);
 
-    const receive = this.filterRcv && conn.source.ied === this.selectedIed;
-    const send = this.filterSend && conn.target.ied === this.selectedIed;
+    const receive = this.filterRcv && conn.source.iedName === this.selectedIed;
+    const send = this.filterSend && conn.target.iedName === this.selectedIed;
 
     return !(service || ied || source || target || cbName || receive || send);
   }
@@ -269,11 +357,10 @@ export class CommunicationMappingEditor extends LitElement {
   selectIED(ied: IED): void {
     if (this.selectedIed !== ied.element) {
       this.selectedIed = ied.element;
+      const iedName = this.selectedIed.getAttributeNS(sldNs, 'name');
       this.linkedEquipments = Array.from(
         this.selectedIed.ownerDocument.querySelectorAll(
-          `ConductingEquipment LNode[iedName="${this.selectedIed.getAttribute(
-            'name'
-          )}"]`
+          `ConductingEquipment LNode[iedName="${iedName}"]`
         )
       ).map(lNode => lNode.closest('ConductingEquipment')!);
     } else this.resetIedSelection();
@@ -293,7 +380,9 @@ export class CommunicationMappingEditor extends LitElement {
 
     if (
       this.placing &&
-      element.closest(this.placing.tagName) === this.placing
+      element.closest(this.placing.localName) === this.placing &&
+      element.closest(this.placing.localName)?.namespaceURI ===
+        this.placing.namespaceURI
     ) {
       const {
         pos: [parentX, parentY],
@@ -310,12 +399,12 @@ export class CommunicationMappingEditor extends LitElement {
     return [x, y];
   }
 
-  renderLabel(element: Element) {
+  renderLabel(ied: IED) {
     const deg = 0;
-    const text = element.getAttribute('name');
+    const text = ied.element.getAttributeNS(sldNs, 'name');
     const weight = 400;
     const color = 'black';
-    const [x, y] = this.renderedLabelPosition(element);
+    const [x, y] = this.renderedLabelPosition(ied.element);
 
     const fontSize = 0.45;
     let events = 'none';
@@ -323,9 +412,9 @@ export class CommunicationMappingEditor extends LitElement {
     if (this.idle && this.editMode) {
       events = 'all';
       const offset = [this.mouseX2 - x - 0.5, this.mouseY2 - y + 0.5] as Point;
-      handleClick = () => this.startPlacingLabel(element, offset);
+      handleClick = () => this.startPlacingLabel(ied.element, offset);
     }
-    const id = identity(element);
+    const id = identity(ied.ied);
     const classes = classMap({
       label: true,
       ied: true,
@@ -347,9 +436,14 @@ export class CommunicationMappingEditor extends LitElement {
     let {
       pos: [x, y],
     } = attributes(element);
+
+    const nearestPlacingElement = this.placing
+      ? element.closest(this.placing.localName)
+      : null;
     if (
       this.placing &&
-      element.closest(this.placing.tagName) === this.placing
+      nearestPlacingElement === this.placing &&
+      nearestPlacingElement?.namespaceURI === this.placing.namespaceURI
     ) {
       const {
         pos: [parentX, parentY],
@@ -379,7 +473,7 @@ export class CommunicationMappingEditor extends LitElement {
     return svg`<svg
     xmlns="${svgNs}"
     xmlns:xlink="${xlinkNs}"
-    id="${identity(ied.element)}"
+    id="${identity(ied.ied)}"
     x="${x}"
     y="${y}"
     width="${1 * this.gridSize}"
@@ -574,11 +668,12 @@ export class CommunicationMappingEditor extends LitElement {
       : nothing;
 
     const iedPlacingTarget =
-      this.placing?.tagName === 'IED'
+      this.placing?.localName === 'IEDName'
         ? svg`<rect width="100%" height="100%" fill="url(#grid)" 
         @click=${() => {
           const element = this.placing!;
           const [x, y] = this.renderedPosition(element);
+
           this.placeElement(element, x, y);
         }} />`
         : nothing;
@@ -620,8 +715,8 @@ export class CommunicationMappingEditor extends LitElement {
             gridSize: this.gridSize,
             linkedEquipments: this.linkedEquipments,
           })}
-          ${this.ieds.map(ied => this.renderIED(ied))}
-          ${this.ieds.map(ied => this.renderLabel(ied.element))}
+          ${this.ieds.map(iedName => this.renderIED(iedName))}
+          ${this.ieds.map(iedName => this.renderLabel(iedName))}
           ${placingLabelTarget} ${iedPlacingTarget}
           ${filteredConnections.map(link => svgConnection(link))}
         </svg>

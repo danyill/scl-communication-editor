@@ -48,11 +48,11 @@ function tooltip(conn: Connection): string {
 function connDimensions(conn: Connection): ConnectionDimensions {
   const {
     pos: [sx, sy],
-  } = attributes(conn.source.ied);
+  } = attributes(conn.source.iedName);
 
   const {
     pos: [tx, ty],
-  } = attributes(conn.target.ied);
+  } = attributes(conn.target.iedName);
 
   return { sx, sy, tx, ty };
 }

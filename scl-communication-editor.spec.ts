@@ -4,7 +4,7 @@ import { sendMouse, setViewport } from '@web/test-runner-commands';
 
 import { SinonSpy, spy } from 'sinon';
 
-import { Edit, isRemove, isUpdate } from '@openscd/open-scd-core';
+import { Edit, isInsert, isRemove, isUpdate } from '@openscd/open-scd-core';
 
 import { commScd, scd } from './testfiles.js';
 
@@ -28,7 +28,7 @@ mocha.timeout(2000 * factor);
 describe('scl-communication-editor', () => {
   let editor: SlcCommunicationEditor;
 
-  describe('allow to move IED and IEd labels around', () => {
+  describe('allow to move IED and IED labels around', () => {
     let editEvent: SinonSpy;
 
     beforeEach(async () => {
@@ -59,20 +59,23 @@ describe('scl-communication-editor', () => {
 
       expect(editEvent).to.have.been.calledOnce;
       const edit = editEvent.args[0][0];
-      expect(edit.detail).to.satisfy(isUpdate);
-      expect(edit.detail.element.tagName).to.equal('IED');
-      expect(edit.detail.attributes['esld:x']).to.exist;
-      expect(edit.detail.attributes['esld:x'].namespaceURI).to.equal(sldURI);
-      expect(edit.detail.attributes['esld:x'].value).to.equal('4');
-      expect(edit.detail.attributes['esld:y']).to.exist;
-      expect(edit.detail.attributes['esld:y'].namespaceURI).to.equal(sldURI);
-      expect(edit.detail.attributes['esld:y'].value).to.equal('3');
-      expect(edit.detail.attributes['esld:lx']).to.exist;
-      expect(edit.detail.attributes['esld:lx'].namespaceURI).to.equal(sldURI);
-      expect(edit.detail.attributes['esld:lx'].value).to.equal('5');
-      expect(edit.detail.attributes['esld:ly']).to.exist;
-      expect(edit.detail.attributes['esld:ly'].namespaceURI).to.equal(sldURI);
-      expect(edit.detail.attributes['esld:ly'].value).to.equal('4');
+      expect(edit.detail[0]).to.satisfy(isInsert);
+      expect(edit.detail[0].node.tagName).to.equal('esld:IEDName');
+      expect(edit.detail[0].parent.tagName).to.equal('Bay');
+      expect(edit.detail[1]).to.satisfy(isUpdate);
+      expect(edit.detail[1].element.tagName).to.equal('esld:IEDName');
+      expect(edit.detail[1].attributes.x).to.exist;
+      expect(edit.detail[1].attributes.x.namespaceURI).to.equal(sldURI);
+      expect(edit.detail[1].attributes.x.value).to.equal('4');
+      expect(edit.detail[1].attributes.y).to.exist;
+      expect(edit.detail[1].attributes.y.namespaceURI).to.equal(sldURI);
+      expect(edit.detail[1].attributes.y.value).to.equal('3');
+      expect(edit.detail[1].attributes.lx).to.exist;
+      expect(edit.detail[1].attributes.lx.namespaceURI).to.equal(sldURI);
+      expect(edit.detail[1].attributes.lx.value).to.equal('5');
+      expect(edit.detail[1].attributes.ly).to.exist;
+      expect(edit.detail[1].attributes.ly.namespaceURI).to.equal(sldURI);
+      expect(edit.detail[1].attributes.ly.value).to.equal('4');
     });
 
     it('fires edit action on IED label move', async () => {
@@ -85,7 +88,7 @@ describe('scl-communication-editor', () => {
       expect(editEvent).to.have.been.calledOnce;
       const edit = editEvent.args[0][0];
       expect(edit.detail).to.satisfy(isUpdate);
-      expect(edit.detail.element.tagName).to.equal('IED');
+      expect(edit.detail.element.tagName).to.equal('esld:IEDName');
       expect(edit.detail.attributes['esld:x']).to.not.exist;
       expect(edit.detail.attributes['esld:y']).to.not.exist;
       expect(edit.detail.attributes['esld:lx']).to.exist;

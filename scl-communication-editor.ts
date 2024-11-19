@@ -22,6 +22,8 @@ import {
   inputSupportingText,
 } from './foundation/utils.js';
 
+import { sldNs } from './foundation/sldUtil.js';
+
 type SelectConnectionEvent = CustomEvent<Connection>;
 
 function combineSelectors<T>(...selectors: T[][]): string {
@@ -43,27 +45,36 @@ function clientLnConnections(doc: XMLDocument): Connection[] {
     ['ReportControl']
   );
 
-  return Array.from(doc.querySelectorAll(controlBlockSelector)).flatMap(
-    sourceCb => {
+  const iedToNameElement = new Map<string, Element>();
+  Array.from(doc.getElementsByTagNameNS(sldNs, 'IEDName')).forEach(iedName =>
+    iedToNameElement.set(iedName.getAttributeNS(sldNs, 'name')!, iedName)
+  );
+
+  const cc = Array.from(doc.querySelectorAll(controlBlockSelector))
+    .flatMap(sourceCb => {
       const sourceIed = sourceCb.closest('IED')!;
+      const sourceIedName = iedToNameElement.get(
+        sourceIed.getAttribute('name')!
+      );
 
       const sortedClientLns: Record<
         string,
-        { ied: Element; inputs: Element[] }
+        { ied: Element; iedName: Element; inputs: Element[] }
       > = {};
       sourceCb
         .querySelectorAll(':scope > RptEnabled > ClientLN')
         .forEach(clientLn => {
-          const targetIed = doc.querySelector(
-            `:root > IED[name="${clientLn.getAttribute('iedName')}"`
-          );
-          const targetIedName = targetIed?.getAttribute('name');
-          if (!targetIed || !targetIedName) return;
-          if (sortedClientLns[targetIedName])
-            sortedClientLns[targetIedName].inputs.push(clientLn);
+          const iedName = clientLn.getAttribute('iedName')!;
+          const targetIed = doc.querySelector(`:root > IED[name="${iedName}"`);
+          const targetIedName = iedToNameElement.get(iedName);
+
+          if (!targetIed || !targetIedName || !iedName) return;
+          if (sortedClientLns[iedName])
+            sortedClientLns[iedName].inputs.push(clientLn);
           else
-            sortedClientLns[targetIedName] = {
+            sortedClientLns[iedName] = {
               ied: targetIed,
+              iedName: targetIedName,
               inputs: [clientLn],
             };
         });
@@ -73,15 +84,29 @@ function clientLnConnections(doc: XMLDocument): Connection[] {
 
         return {
           id,
-          source: { ied: sourceIed, controlBlock: sourceCb },
+          source: {
+            ied: sourceIed,
+            iedName: sourceIedName,
+            controlBlock: sourceCb,
+          },
           target,
         };
       });
-    }
-  );
+    })
+    .filter(
+      (conn): conn is Connection & { source: { iedName: Element } } =>
+        conn.source.iedName !== undefined
+    );
+
+  return cc;
 }
 
 function parseExtRefs(doc: XMLDocument): Connection[] {
+  const iedToNameElement = new Map<string, Element>();
+  Array.from(doc.getElementsByTagNameNS(sldNs, 'IEDName')).forEach(iedName =>
+    iedToNameElement.set(iedName.getAttributeNS(sldNs, 'name')!, iedName)
+  );
+
   const controlBlockSelector = combineSelectors(
     [':root > IED > AccessPoint > Server > LDevice'],
     ['>'],
@@ -90,10 +115,11 @@ function parseExtRefs(doc: XMLDocument): Connection[] {
     ['GSEControl', 'SampledValueControl']
   );
 
-  return Array.from(doc.querySelectorAll(controlBlockSelector)).flatMap(
-    controlBlock => {
+  return Array.from(doc.querySelectorAll(controlBlockSelector))
+    .flatMap(controlBlock => {
       const sourceIed = controlBlock.closest('IED')!;
-      const iedName = sourceIed!.getAttribute('name');
+      const iedName = sourceIed.getAttribute('name')!;
+      const sourceIedName = iedToNameElement.get(iedName);
       const ldInst = controlBlock.closest('LDevice')!.getAttribute('inst');
       const anyLn = controlBlock.closest('LN,LN0')!;
       const prefix = anyLn!.getAttribute('prefix');
@@ -111,7 +137,10 @@ function parseExtRefs(doc: XMLDocument): Connection[] {
         ]
       );
 
-      const targetMap: Record<string, { ied: Element; inputs: Element[] }> = {};
+      const targetMap: Record<
+        string,
+        { ied: Element; iedName: Element; inputs: Element[] }
+      > = {};
 
       Array.from(doc.querySelectorAll(extRefSelector))
         .filter(extRef => {
@@ -130,19 +159,34 @@ function parseExtRefs(doc: XMLDocument): Connection[] {
         })
         .forEach(extRef => {
           const target = extRef.closest('IED');
-          const targetName = target!.getAttribute('name');
+          const targetName = target!.getAttribute('name')!;
+          const targetIedName = iedToNameElement.get(targetName);
           if (targetName && targetMap[targetName])
             targetMap[targetName].inputs.push(extRef);
-          else if (targetName)
-            targetMap[targetName] = { ied: target!, inputs: [extRef] };
+          else if (targetIedName)
+            targetMap[targetName] = {
+              ied: target!,
+              iedName: targetIedName,
+              inputs: [extRef],
+            };
         });
 
       return Object.values(targetMap).map(target => {
         const id = `${identity(controlBlock)}${target.ied}`;
-        return { id, source: { ied: sourceIed, controlBlock }, target };
+        return {
+          id,
+          source: { ied: sourceIed, iedName: sourceIedName, controlBlock },
+          target,
+        };
       });
-    }
-  );
+    })
+    .filter(
+      (
+        conn
+      ): conn is Connection & { source: { ied: Element } } & {
+        target: { ied: Element };
+      } => conn.source.iedName !== null && conn.source.iedName !== null
+    );
 }
 
 function connectionHeading(conn: Connection): string {
