@@ -50,7 +50,7 @@ function clientLnConnections(doc: XMLDocument): Connection[] {
     iedToNameElement.set(iedName.getAttributeNS(sldNs, 'name')!, iedName)
   );
 
-  const cc = Array.from(doc.querySelectorAll(controlBlockSelector))
+  return Array.from(doc.querySelectorAll(controlBlockSelector))
     .flatMap(sourceCb => {
       const sourceIed = sourceCb.closest('IED')!;
       const sourceIedName = iedToNameElement.get(
@@ -97,8 +97,6 @@ function clientLnConnections(doc: XMLDocument): Connection[] {
       (conn): conn is Connection & { source: { iedName: Element } } =>
         conn.source.iedName !== undefined
     );
-
-  return cc;
 }
 
 function parseExtRefs(doc: XMLDocument): Connection[] {
