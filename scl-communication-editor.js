@@ -15949,7 +15949,9 @@ let CommunicationMappingEditor = class CommunicationMappingEditor extends s$2 {
                 this.placeElement(element, x, y);
             }} />`
             : A;
-        const filteredConnections = this.connections.filter(conn => this.filterConnections(conn));
+        const filteredConnections = this.connections.filter(conn => this.filterConnections(conn) &&
+            conn.source.iedName &&
+            conn.target.iedName);
         const svgConnection = svgConnectionGenerator(this.substation, filteredConnections);
         return x ` ${this.renderInfoBox()}
       <div id="container">
