@@ -35,6 +35,9 @@ export declare class CommunicationMappingEditor extends LitElement {
     sld: SVGGraphicsElement;
     container: HTMLDivElement;
     svgCoordinates(clientX: number, clientY: number): Point;
+    handleKeydown: ({ key }: KeyboardEvent) => void;
+    connectedCallback(): void;
+    disconnectedCallback(): void;
     reset(): void;
     placeLabel(element: Element, x: number, y: number): void;
     startPlacingLabel(element: Element | undefined, offset?: Point): void;
@@ -51,7 +54,7 @@ export declare class CommunicationMappingEditor extends LitElement {
     selectIED(ied: IED): void;
     constructor();
     renderedLabelPosition(element: Element): Point;
-    renderLabel(element: Element): TemplateResult<2>;
+    renderLabel(ied: IED): TemplateResult<2>;
     renderedPosition(element: Element): Point;
     renderIED(ied: IED): TemplateResult<2>;
     renderFilterBox(): TemplateResult;
