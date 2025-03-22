@@ -213,16 +213,16 @@ export default class SlcCommunicationEditor extends LitElement {
     return html`<mwc-dialog heading="${heading}"
       >${content}
       <mwc-button
-        slot="secondaryAction"
-        label="discard"
+        slot="primaryAction"
+        label="close"
         dialogAction="cancel"
-        style="--mdc-theme-primary: var(--oscd-error)"
       ></mwc-button>
       <mwc-button
-        slot="primaryAction"
+        slot="secondaryAction"
         label="remove all"
         icon="link_off"
         @click="${this.removeAllInputs}"
+        style="--mdc-theme-primary: var(--oscd-error)"
         dialogAction="cancel"
       ></mwc-button
     ></mwc-dialog>`;
