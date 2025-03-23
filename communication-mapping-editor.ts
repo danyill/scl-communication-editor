@@ -1,6 +1,8 @@
 import { LitElement, nothing, css, html, svg, TemplateResult } from 'lit';
-import { customElement, property, query, state } from 'lit/decorators.js';
+import { property, query, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
+
+import { ScopedElementsMixin } from '@open-wc/scoped-elements/lit-element.js';
 
 import '@material/mwc-button';
 import '@material/mwc-icon-button';
@@ -10,7 +12,9 @@ import '@material/mwc-fab';
 import '@material/mwc-textfield';
 import type { IconButtonToggle } from '@material/mwc-icon-button-toggle';
 
-import { Edit, newEditEvent } from '@openscd/open-scd-core';
+import { MdIcon } from '@scopedelement/material-web/icon/MdIcon.js';
+
+import { Edit, newEditEvent } from '@openenergytools/open-scd-core';
 
 import { getReference, identity } from '@openenergytools/scl-lib';
 
@@ -28,8 +32,13 @@ import {
 import { serviceColoring, svgConnectionGenerator } from './foundation/paths.js';
 import { IED, Connection } from './foundation/types.js';
 
-@customElement('communication-mapping-editor')
-export class CommunicationMappingEditor extends LitElement {
+export class CommunicationMappingEditor extends ScopedElementsMixin(
+  LitElement
+) {
+  static scopedElements = {
+    'md-icon': MdIcon,
+  };
+
   @property({ attribute: false })
   substation!: Element;
 
