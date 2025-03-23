@@ -12,8 +12,6 @@ import '@material/mwc-fab';
 import '@material/mwc-textfield';
 import type { IconButtonToggle } from '@material/mwc-icon-button-toggle';
 
-import { MdIcon } from '@scopedelement/material-web/icon/MdIcon.js';
-
 import { newEditEvent } from '@openenergytools/open-scd-core';
 
 import { identity } from '@openenergytools/scl-lib';
@@ -34,7 +32,11 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
   LitElement
 ) {
   static scopedElements = {
-    'md-icon': MdIcon,
+    'mwc-fab': customElements.get('mwc-fab'),
+    'mwc-textfield': customElements.get('mwc-textfield'),
+    'mwc-button': customElements.get('mwc-button'),
+    'mwc-icon-button': customElements.get('mwc-icon-button'),
+    'mwc-icon-button-toggle': customElements.get('mwc-icon-button-toggle'),
   };
 
   @property({ attribute: false })

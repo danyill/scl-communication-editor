@@ -193,6 +193,10 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
     'md-list-item': MdListItem,
     'communication-mapping-editor': CommunicationMappingEditor,
     'action-list': ActionList,
+    'mwc-button': customElements.get('mwc-button'),
+    'mwc-icon': customElements.get('mwc-icon'),
+    'mwc-list': customElements.get('mwc-list'),
+    'mwc-list-item': customElements.get('mwc-list-item'),
   };
 
   @property({ attribute: false })
