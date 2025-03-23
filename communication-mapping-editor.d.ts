@@ -4,13 +4,16 @@ import '@material/mwc-icon-button';
 import '@material/mwc-icon-button-toggle';
 import '@material/mwc-fab';
 import '@material/mwc-textfield';
-import { MdIcon } from '@scopedelement/material-web/icon/MdIcon.js';
 import { Point } from './foundation/sldUtil.js';
 import { IED, Connection } from './foundation/types.js';
 declare const CommunicationMappingEditor_base: typeof LitElement & import("@open-wc/scoped-elements/lit-element.js").ScopedElementsHostConstructor;
 export declare class CommunicationMappingEditor extends CommunicationMappingEditor_base {
     static scopedElements: {
-        'md-icon': typeof MdIcon;
+        'mwc-fab': CustomElementConstructor | undefined;
+        'mwc-textfield': CustomElementConstructor | undefined;
+        'mwc-button': CustomElementConstructor | undefined;
+        'mwc-icon-button': CustomElementConstructor | undefined;
+        'mwc-icon-button-toggle': CustomElementConstructor | undefined;
     };
     substation: Element;
     gridSize: number;
@@ -40,9 +43,6 @@ export declare class CommunicationMappingEditor extends CommunicationMappingEdit
     sld: SVGGraphicsElement;
     container: HTMLDivElement;
     svgCoordinates(clientX: number, clientY: number): Point;
-    handleKeydown: ({ key }: KeyboardEvent) => void;
-    connectedCallback(): void;
-    disconnectedCallback(): void;
     reset(): void;
     placeLabel(element: Element, x: number, y: number): void;
     startPlacingLabel(element: Element | undefined, offset?: Point): void;
@@ -59,7 +59,7 @@ export declare class CommunicationMappingEditor extends CommunicationMappingEdit
     selectIED(ied: IED): void;
     constructor();
     renderedLabelPosition(element: Element): Point;
-    renderLabel(ied: IED): TemplateResult<2>;
+    renderLabel(element: Element): TemplateResult<2>;
     renderedPosition(element: Element): Point;
     renderIED(ied: IED): TemplateResult<2>;
     renderFilterBox(): TemplateResult;

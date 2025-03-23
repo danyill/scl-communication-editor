@@ -21,6 +21,10 @@ export default class SldCommunicationEditor extends SldCommunicationEditor_base 
         'md-list-item': typeof MdListItem;
         'communication-mapping-editor': typeof CommunicationMappingEditor;
         'action-list': typeof ActionList;
+        'mwc-button': CustomElementConstructor | undefined;
+        'mwc-icon': CustomElementConstructor | undefined;
+        'mwc-list': CustomElementConstructor | undefined;
+        'mwc-list-item': CustomElementConstructor | undefined;
     };
     doc?: XMLDocument;
     get substation(): Element | null;
