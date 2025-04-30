@@ -689,8 +689,11 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
         }} />`
         : nothing;
 
-    const filteredConnections = this.connections.filter(conn =>
-      this.filterConnections(conn)
+    const filteredConnections = this.connections.filter(
+      conn =>
+        this.filterConnections(conn) &&
+        conn.source.iedName &&
+        conn.target.iedName
     );
 
     const svgConnection = svgConnectionGenerator(
