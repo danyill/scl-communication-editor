@@ -1,6 +1,13 @@
 /* eslint-disable import/no-extraneous-dependencies */
 /* eslint-disable no-return-assign */
-import { css, html, LitElement, nothing, TemplateResult } from 'lit';
+import {
+  css,
+  html,
+  LitElement,
+  nothing,
+  PropertyValues,
+  TemplateResult,
+} from 'lit';
 import { property, query, state } from 'lit/decorators.js';
 
 import { ScopedElementsMixin } from '@open-wc/scoped-elements/lit-element.js';
@@ -257,6 +264,11 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
   @state()
   selectedConnection?: Connection;
 
+  @state()
+  parsedExtRefs: Connection[] = this.substation
+    ? parseExtRefs(this.substation.ownerDocument)
+    : [];
+
   @query('#mappingDetails') mappingDetails!: MdDialog;
 
   removeInputs(inputs: Element[]): void {
@@ -276,6 +288,9 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
   removeAllInputs(): void {
     const inputs = this.selectedConnection?.target.inputs ?? [];
     this.removeInputs(inputs);
+    this.parsedExtRefs = this.substation
+      ? parseExtRefs(this.substation.ownerDocument)
+      : [];
 
     this.requestUpdate();
   }
@@ -363,6 +378,28 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
           : null}
       </tbody>
     </table>`;
+  }
+
+  // protected async firstUpdated(): Promise<void> {
+  //   this.parsedExtRefs = this.substation
+  //     ? parseExtRefs(this.substation.ownerDocument)
+  //     : [];
+  // }
+
+  protected updated(changedProperties: PropertyValues): void {
+    super.updated(changedProperties);
+
+    // When a new document is loaded or we do a subscription/we will reset the parsed ExtRefs
+    // TODO: Be able to detect the same document loaded twice, currently lack a way to check for this
+    // Maybe just edit count would do?
+    if (
+      changedProperties.has('docName') ||
+      changedProperties.has('editCount')
+    ) {
+      this.parsedExtRefs = this.substation
+        ? parseExtRefs(this.substation.ownerDocument)
+        : [];
+    }
   }
 
   renderSubscription(): TemplateResult {
@@ -475,7 +512,11 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
   }
 
   render() {
+    console.log(this.parsedExtRefs);
+
     if (!this.substation) return html`<main>No substation section</main>`;
+    if (this.parsedExtRefs.length === 0)
+      return html`<main>No connections to display</main>`;
 
     return html`<main>
       <communication-mapping-editor
@@ -483,7 +524,7 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
         .gridSize=${this.gridSize}
         .connections=${[
           ...clientLnConnections(this.substation.ownerDocument),
-          ...parseExtRefs(this.substation.ownerDocument),
+          ...this.parsedExtRefs,
         ]}
         @select-connection="${(evt: SelectConnectionEvent) => {
           this.selectedConnection = evt.detail;

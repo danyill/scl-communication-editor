@@ -1,4 +1,12 @@
-import { LitElement, nothing, css, html, svg, TemplateResult } from 'lit';
+import {
+  LitElement,
+  nothing,
+  css,
+  html,
+  svg,
+  TemplateResult,
+  PropertyValues,
+} from 'lit';
 import { property, query, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 
@@ -102,13 +110,13 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
 
   @state() placingOffset: Point = [0, 0];
 
-  @state() mouseX = 0;
+  mouseX = 0;
 
-  @state() mouseY = 0;
+  mouseY = 0;
 
-  @state() mouseX2 = 0;
+  mouseX2 = 0;
 
-  @state() mouseY2 = 0;
+  mouseY2 = 0;
 
   @state() linkedEquipments: Element[] = [];
 
@@ -381,6 +389,11 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
     super();
 
     this.addEventListener('wheel', this.onWheelZoom);
+  }
+
+  protected updated(changedProperties: PropertyValues): void {
+    super.updated(changedProperties);
+    console.log('x', changedProperties);
   }
 
   renderedLabelPosition(element: Element): Point {
@@ -665,6 +678,9 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
   }
 
   render() {
+    console.log('render');
+    if (this.connections.length === 0) return html`<p>Nothing to render</p>`;
+
     const {
       dim: [w, h],
     } = attributes(this.substation);
