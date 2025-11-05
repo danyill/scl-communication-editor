@@ -102,13 +102,13 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
 
   @state() placingOffset: Point = [0, 0];
 
-  @state() mouseX = 0;
+  mouseX = 0;
 
-  @state() mouseY = 0;
+  mouseY = 0;
 
-  @state() mouseX2 = 0;
+  mouseX2 = 0;
 
-  @state() mouseY2 = 0;
+  mouseY2 = 0;
 
   @state() linkedEquipments: Element[] = [];
 
