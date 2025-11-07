@@ -1,6 +1,13 @@
 /* eslint-disable import/no-extraneous-dependencies */
 /* eslint-disable no-return-assign */
-import { css, html, LitElement, nothing, TemplateResult } from 'lit';
+import {
+  css,
+  html,
+  LitElement,
+  nothing,
+  PropertyValues,
+  TemplateResult,
+} from 'lit';
 import { property, query, state } from 'lit/decorators.js';
 
 import { ScopedElementsMixin } from '@open-wc/scoped-elements/lit-element.js';
@@ -257,6 +264,23 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
   @state()
   selectedConnection?: Connection;
 
+  @state()
+  parsedExtRefs: Connection[] = this.substation
+    ? parseExtRefs(this.substation.ownerDocument)
+    : [];
+
+  private _cachedConnections: Connection[] = [];
+
+  get cachedConnections(): Connection[] {
+    if (!this.substation) return [];
+    if (!(this._cachedConnections.length > 0)) {
+      this._cachedConnections = [
+        ...clientLnConnections(this.substation.ownerDocument),
+      ];
+    }
+    return this._cachedConnections;
+  }
+
   @query('#mappingDetails') mappingDetails!: MdDialog;
 
   removeInputs(inputs: Element[]): void {
@@ -271,11 +295,15 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
     const edits = [...removeClientLNs, ...removeExtRefs];
 
     if (edits.length > 0) this.dispatchEvent(newEditEvent(edits));
+    this._cachedConnections = [];
   }
 
   removeAllInputs(): void {
     const inputs = this.selectedConnection?.target.inputs ?? [];
     this.removeInputs(inputs);
+    this.parsedExtRefs = this.substation
+      ? parseExtRefs(this.substation.ownerDocument)
+      : [];
 
     this.requestUpdate();
   }
@@ -363,6 +391,20 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
           : null}
       </tbody>
     </table>`;
+  }
+
+  protected updated(changedProperties: PropertyValues): void {
+    super.updated(changedProperties);
+
+    // When a new document is loaded or we do a subscription/we will reset the parsed ExtRefs
+    if (
+      changedProperties.has('docName') ||
+      changedProperties.has('editCount')
+    ) {
+      this.parsedExtRefs = this.substation
+        ? parseExtRefs(this.substation.ownerDocument)
+        : [];
+    }
   }
 
   renderSubscription(): TemplateResult {
@@ -476,15 +518,14 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
 
   render() {
     if (!this.substation) return html`<main>No substation section</main>`;
+    if (this.parsedExtRefs.length === 0)
+      return html`<main>No connections to display</main>`;
 
     return html`<main>
       <communication-mapping-editor
         .substation=${this.substation}
         .gridSize=${this.gridSize}
-        .connections=${[
-          ...clientLnConnections(this.substation.ownerDocument),
-          ...parseExtRefs(this.substation.ownerDocument),
-        ]}
+        .connections=${[...this.cachedConnections, ...this.parsedExtRefs]}
         @select-connection="${(evt: SelectConnectionEvent) => {
           this.selectedConnection = evt.detail;
           this.mappingDetails.show();

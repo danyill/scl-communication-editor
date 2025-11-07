@@ -56,6 +56,24 @@ function tooltip(conn: Connection): string {
 \t${data.join('\n\t')}`;
 }
 
+const tooltipCache = new WeakMap<Connection, string>();
+let lastTooltipUpdate = 0;
+const TOOLTIP_UPDATE_INTERVAL = 250; // ms
+
+function getTooltipThrottled(conn: Connection): string {
+  const now = performance.now();
+  if (
+    now - lastTooltipUpdate < TOOLTIP_UPDATE_INTERVAL &&
+    tooltipCache.has(conn)
+  ) {
+    return tooltipCache.get(conn)!;
+  }
+  const t = tooltip(conn);
+  tooltipCache.set(conn, t);
+  lastTooltipUpdate = now;
+  return t;
+}
+
 function connDimensions(conn: Connection): ConnectionDimensions {
   const {
     pos: [sx, sy],
@@ -446,12 +464,14 @@ export function svgConnectionGenerator(
     });
 
     const color = serviceColoring[conn.source.controlBlock.tagName];
-    return svg`<svg class="connection ${conn.source.controlBlock.tagName}"
+    return svg`<svg id="${conn.id}" class="connection ${
+      conn.source.controlBlock.tagName
+    }"
           width="${w}"
           height="${h}">
           <path d="${linkPath}" stroke="${color}" stroke-width="0.08" @click="${(
       evt: Event
-    ) => evt.target?.dispatchEvent(event)}"><title>${tooltip(
+    ) => evt.target?.dispatchEvent(event)}"><title>${getTooltipThrottled(
       conn
     )}</title></path>
           <path d="${arrowPath}" stroke="${color}" fill="${color}" stroke-width="0.08"/>
