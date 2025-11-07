@@ -269,6 +269,18 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
     ? parseExtRefs(this.substation.ownerDocument)
     : [];
 
+  private _cachedConnections: Connection[] = [];
+
+  get cachedConnections(): Connection[] {
+    if (!this.substation) return [];
+    if (!(this._cachedConnections.length > 0)) {
+      this._cachedConnections = [
+        ...clientLnConnections(this.substation.ownerDocument),
+      ];
+    }
+    return this._cachedConnections;
+  }
+
   @query('#mappingDetails') mappingDetails!: MdDialog;
 
   removeInputs(inputs: Element[]): void {
@@ -283,6 +295,7 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
     const edits = [...removeClientLNs, ...removeExtRefs];
 
     if (edits.length > 0) this.dispatchEvent(newEditEvent(edits));
+    this._cachedConnections = [];
   }
 
   removeAllInputs(): void {
@@ -380,18 +393,10 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
     </table>`;
   }
 
-  // protected async firstUpdated(): Promise<void> {
-  //   this.parsedExtRefs = this.substation
-  //     ? parseExtRefs(this.substation.ownerDocument)
-  //     : [];
-  // }
-
   protected updated(changedProperties: PropertyValues): void {
     super.updated(changedProperties);
 
     // When a new document is loaded or we do a subscription/we will reset the parsed ExtRefs
-    // TODO: Be able to detect the same document loaded twice, currently lack a way to check for this
-    // Maybe just edit count would do?
     if (
       changedProperties.has('docName') ||
       changedProperties.has('editCount')
@@ -512,8 +517,6 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
   }
 
   render() {
-    console.log(this.parsedExtRefs);
-
     if (!this.substation) return html`<main>No substation section</main>`;
     if (this.parsedExtRefs.length === 0)
       return html`<main>No connections to display</main>`;
@@ -522,10 +525,7 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
       <communication-mapping-editor
         .substation=${this.substation}
         .gridSize=${this.gridSize}
-        .connections=${[
-          ...clientLnConnections(this.substation.ownerDocument),
-          ...this.parsedExtRefs,
-        ]}
+        .connections=${[...this.cachedConnections, ...this.parsedExtRefs]}
         @select-connection="${(evt: SelectConnectionEvent) => {
           this.selectedConnection = evt.detail;
           this.mappingDetails.show();

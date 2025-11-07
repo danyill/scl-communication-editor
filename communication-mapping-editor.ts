@@ -55,7 +55,10 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
   @property({ type: Number })
   gridSize!: number;
 
-  @property({ attribute: false })
+  // @property({ attribute: false })
+  // connections: Connection[] = [];
+
+  @property({ attribute: false, hasChanged: (v, o) => v !== o })
   connections: Connection[] = [];
 
   @state()
@@ -391,11 +394,6 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
     this.addEventListener('wheel', this.onWheelZoom);
   }
 
-  protected updated(changedProperties: PropertyValues): void {
-    super.updated(changedProperties);
-    console.log('x', changedProperties);
-  }
-
   renderedLabelPosition(element: Element): Point {
     let {
       label: [x, y],
@@ -678,7 +676,6 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
   }
 
   render() {
-    console.log('render');
     if (this.connections.length === 0) return html`<p>Nothing to render</p>`;
 
     const {
