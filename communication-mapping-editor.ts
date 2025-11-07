@@ -1,4 +1,12 @@
-import { LitElement, nothing, css, html, svg, TemplateResult } from 'lit';
+import {
+  LitElement,
+  nothing,
+  css,
+  html,
+  svg,
+  TemplateResult,
+  PropertyValues,
+} from 'lit';
 import { property, query, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 
@@ -47,7 +55,10 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
   @property({ type: Number })
   gridSize!: number;
 
-  @property({ attribute: false })
+  // @property({ attribute: false })
+  // connections: Connection[] = [];
+
+  @property({ attribute: false, hasChanged: (v, o) => v !== o })
   connections: Connection[] = [];
 
   @state()
@@ -665,6 +676,8 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
   }
 
   render() {
+    if (this.connections.length === 0) return html`<p>Nothing to render</p>`;
+
     const {
       dim: [w, h],
     } = attributes(this.substation);
