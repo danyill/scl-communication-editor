@@ -1,4 +1,12 @@
-import { LitElement, nothing, css, html, svg, TemplateResult } from 'lit';
+import {
+  LitElement,
+  nothing,
+  css,
+  html,
+  svg,
+  TemplateResult,
+  SVGTemplateResult,
+} from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 
@@ -23,8 +31,16 @@ import {
   svgNs,
   xlinkNs,
 } from './foundation/sldUtil.js';
-import { serviceColoring, svgConnectionGenerator } from './foundation/paths.js';
+import {
+  connDirection,
+  Count,
+  serviceColoring,
+  svgPath,
+  tooltip,
+} from './foundation/paths.js';
 import { IED, Connection } from './foundation/types.js';
+
+const TOOLTIP_UPDATE_INTERVAL = 250; // ms
 
 @customElement('communication-mapping-editor')
 export class CommunicationMappingEditor extends LitElement {
@@ -76,6 +92,10 @@ export class CommunicationMappingEditor extends LitElement {
   @state() placingLabel?: Element;
 
   @state() placingOffset: Point = [0, 0];
+
+  tooltipCache = new WeakMap<Connection, string>();
+
+  lastTooltipUpdate = 0;
 
   mouseX = 0;
 
@@ -283,6 +303,81 @@ export class CommunicationMappingEditor extends LitElement {
     super();
 
     this.addEventListener('wheel', this.onWheelZoom);
+  }
+
+  // Tooltips are rendered constantly and cause significawnt slow-down by default.
+  // This throttles and caches tooltips to avoid constant fresh rendering.
+
+  getTooltipThrottled(conn: Connection): string {
+    const now = performance.now();
+    if (
+      now - this.lastTooltipUpdate < TOOLTIP_UPDATE_INTERVAL &&
+      this.tooltipCache.has(conn)
+    ) {
+      return this.tooltipCache.get(conn)!;
+    }
+    const t = tooltip(conn);
+    this.tooltipCache.set(conn, t);
+    this.lastTooltipUpdate = now;
+    return t;
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  svgConnectionGenerator(
+    substation: Element,
+    conns: Connection[]
+  ): (conn: Connection) => SVGTemplateResult {
+    const {
+      dim: [w, h],
+    } = attributes(substation);
+
+    const faceCount: Record<string, Count> = {};
+    conns.forEach(conn => {
+      const { sDir, tDir } = connDirection(conn);
+
+      const sourceid = `${identity(conn.source.ied)}`;
+      const targetid = `${identity(conn.target.ied)}`;
+
+      if (!faceCount[sourceid])
+        faceCount[sourceid] = {
+          n: { index: 1, total: 0 },
+          s: { index: 1, total: 0 },
+          e: { index: 1, total: 0 },
+          w: { index: 1, total: 0 },
+        };
+      faceCount[sourceid][sDir].total += 1;
+
+      if (!faceCount[targetid])
+        faceCount[targetid] = {
+          n: { index: 1, total: 0 },
+          s: { index: 1, total: 0 },
+          e: { index: 1, total: 0 },
+          w: { index: 1, total: 0 },
+        };
+      faceCount[targetid][tDir].total += 1;
+    });
+
+    return (conn: Connection) => {
+      const [linkPath, arrowPath] = svgPath(conn, faceCount);
+
+      const event = new CustomEvent('select-connection', {
+        bubbles: true,
+        composed: true,
+        detail: conn,
+      });
+
+      const color = serviceColoring[conn.source.controlBlock.tagName];
+      return svg`<svg class="connection ${conn.source.controlBlock.tagName}"
+          width="${w}"
+          height="${h}">
+          <path d="${linkPath}" stroke="${color}" stroke-width="0.08" @click="${(
+        evt: Event
+      ) => evt.target?.dispatchEvent(event)}"><title>${this.getTooltipThrottled(
+        conn
+      )}</title></path>
+          <path d="${arrowPath}" stroke="${color}" fill="${color}" stroke-width="0.08"/>
+          </svg>`;
+    };
   }
 
   renderedLabelPosition(element: Element): Point {
@@ -587,7 +682,7 @@ export class CommunicationMappingEditor extends LitElement {
       this.filterConnections(conn)
     );
 
-    const svgConnection = svgConnectionGenerator(
+    const svgConnection = this.svgConnectionGenerator(
       this.substation,
       filteredConnections
     );

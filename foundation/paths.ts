@@ -1,5 +1,3 @@
-import { SVGTemplateResult, svg } from 'lit';
-
 import { identity } from '@openenergytools/scl-lib';
 
 import { attributes } from './sldUtil.js';
@@ -26,14 +24,14 @@ interface ConnectionOrientations {
   tDir: Orientation;
 }
 
-type Count = {
+export type Count = {
   n: { index: number; total: number };
   e: { index: number; total: number };
   s: { index: number; total: number };
   w: { index: number; total: number };
 };
 
-function tooltip(conn: Connection): string {
+export function tooltip(conn: Connection): string {
   const cbName = conn.source.controlBlock.getAttribute('name');
   const sourceIed = conn.source.ied.getAttribute('name');
   const targetIed = conn.target.ied.getAttribute('name');
@@ -57,7 +55,7 @@ function connDimensions(conn: Connection): ConnectionDimensions {
   return { sx, sy, tx, ty };
 }
 
-function connDirection(conn: Connection): ConnectionOrientations {
+export function connDirection(conn: Connection): ConnectionOrientations {
   const { sx, sy, tx, ty } = connDimensions(conn);
 
   if (sx !== tx && sy === ty) return { sDir: 'n', tDir: 'n' };
@@ -388,62 +386,4 @@ export function svgPath(
     }L${tx + tAdj},${ty}`,
     arrow(conn, tx + tAdj, ty),
   ];
-}
-
-export function svgConnectionGenerator(
-  substation: Element,
-  conns: Connection[]
-): (conn: Connection) => SVGTemplateResult {
-  const {
-    dim: [w, h],
-  } = attributes(substation);
-
-  const faceCount: Record<string, Count> = {};
-
-  conns.forEach(conn => {
-    const { sDir, tDir } = connDirection(conn);
-
-    const sourceid = `${identity(conn.source.ied)}`;
-    const targetid = `${identity(conn.target.ied)}`;
-
-    if (!faceCount[sourceid])
-      faceCount[sourceid] = {
-        n: { index: 1, total: 0 },
-        s: { index: 1, total: 0 },
-        e: { index: 1, total: 0 },
-        w: { index: 1, total: 0 },
-      };
-    faceCount[sourceid][sDir].total += 1;
-
-    if (!faceCount[targetid])
-      faceCount[targetid] = {
-        n: { index: 1, total: 0 },
-        s: { index: 1, total: 0 },
-        e: { index: 1, total: 0 },
-        w: { index: 1, total: 0 },
-      };
-    faceCount[targetid][tDir].total += 1;
-  });
-
-  return (conn: Connection) => {
-    const [linkPath, arrowPath] = svgPath(conn, faceCount);
-
-    const event = new CustomEvent('select-connection', {
-      bubbles: true,
-      composed: true,
-      detail: conn,
-    });
-
-    const color = serviceColoring[conn.source.controlBlock.tagName];
-    return svg`<svg class="connection ${conn.source.controlBlock.tagName}"
-          width="${w}"
-          height="${h}">
-          <path d="${linkPath}" stroke="${color}" stroke-width="0.08" @click="${(
-      evt: Event
-    ) => evt.target?.dispatchEvent(event)}"><title>${tooltip(
-      conn
-    )}</title></path>
-          <path d="${arrowPath}" stroke="${color}" fill="${color}" stroke-width="0.08"/>
-          </svg>`;
-  };
 }
