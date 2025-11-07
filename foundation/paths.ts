@@ -2,7 +2,7 @@ import { identity } from '@openenergytools/scl-lib';
 
 import { attributes } from './sldUtil.js';
 import { Connection } from './types.js';
-import { inputReference } from './utils.js';
+import { inputReference, inputSupportingText, isSubscribed } from './utils.js';
 
 export const serviceColoring: Record<string, string> = {
   ReportControl: '#859900',
@@ -36,21 +36,50 @@ export function tooltip(conn: Connection): string {
   const sourceIed = conn.source.ied.getAttribute('name');
   const targetIed = conn.target.ied.getAttribute('name');
 
-  const data = conn.target.inputs.map(input => inputReference(input));
+  const data = conn.target.inputs
+    .filter(input => isSubscribed(input))
+    .map(input => {
+      const fcdaInfo = inputReference(input);
+      const extRefInfo = inputSupportingText(input);
+
+      return `${fcdaInfo.fcdaRef} ${
+        fcdaInfo.desc ? `(${fcdaInfo.desc})` : ''
+      } --> ${extRefInfo.extRefRef} ${
+        extRefInfo.desc ? `(${extRefInfo.desc})` : ''
+      }`;
+    });
 
   return `${sourceIed}:${cbName} -> ${targetIed}
    
-  \t${data.join('\n\t')}`;
+\t${data.join('\n\t')}`;
+}
+
+const tooltipCache = new WeakMap<Connection, string>();
+let lastTooltipUpdate = 0;
+const TOOLTIP_UPDATE_INTERVAL = 250; // ms
+
+function getTooltipThrottled(conn: Connection): string {
+  const now = performance.now();
+  if (
+    now - lastTooltipUpdate < TOOLTIP_UPDATE_INTERVAL &&
+    tooltipCache.has(conn)
+  ) {
+    return tooltipCache.get(conn)!;
+  }
+  const t = tooltip(conn);
+  tooltipCache.set(conn, t);
+  lastTooltipUpdate = now;
+  return t;
 }
 
 function connDimensions(conn: Connection): ConnectionDimensions {
   const {
     pos: [sx, sy],
-  } = attributes(conn.source.ied);
+  } = attributes(conn.source.iedName);
 
   const {
     pos: [tx, ty],
-  } = attributes(conn.target.ied);
+  } = attributes(conn.target.iedName);
 
   return { sx, sy, tx, ty };
 }

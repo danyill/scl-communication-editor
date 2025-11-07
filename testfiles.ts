@@ -576,19 +576,34 @@ export const scd = `<?xml version="1.0" encoding="UTF-8"?>
 	<Header id="scd"/>
 	<Substation name="S1" esld:w="30" esld:h="15">
 		<VoltageLevel name="V2" esld:x="1" esld:y="8" esld:lx="1" esld:ly="8" esld:w="27" esld:h="6">
-			<Bay name="B2" esld:x="17" esld:y="9" esld:lx="17" esld:ly="9" esld:w="10" esld:h="4"/>
-			<Bay name="B1" esld:x="2" esld:y="9" esld:lx="2" esld:ly="9" esld:w="6" esld:h="4"/>
+			<Bay name="B2" esld:x="17" esld:y="9" esld:lx="17" esld:ly="9" esld:w="10" esld:h="4">
+				<Private type="OpenSCD-Linked-IEDs">
+					<esld:IEDName esld:name="IED5" esld:x="19" esld:y="11" esld:lx="20" esld:ly="12"/>
+				</Private>
+			</Bay>
+			<Bay name="B1" esld:x="2" esld:y="9" esld:lx="2" esld:ly="9" esld:w="6" esld:h="4">
+				<Private type="OpenSCD-Linked-IEDs">
+					<esld:IEDName esld:name="IED4" esld:x="4" esld:y="11" esld:lx="5" esld:ly="12"/>
+				</Private>
+			</Bay>
 		</VoltageLevel>
 		<VoltageLevel name="V1" esld:x="1" esld:y="2" esld:lx="1" esld:ly="2" esld:w="16" esld:h="5">
 			<Bay name="B2" esld:x="9" esld:y="3" esld:lx="9" esld:ly="3" esld:w="6" esld:h="3"/>
-			<Bay name="B1" esld:x="2" esld:y="3" esld:lx="2" esld:ly="3" esld:w="6" esld:h="3"/>
+				<Private type="OpenSCD-Linked-IEDs">
+						<esld:IEDName esld:name="IED3" esld:x="10" esld:y="4" esld:lx="11" esld:ly="5"/>
+				</Private>
+			<Bay name="B1" esld:x="2" esld:y="3" esld:lx="2" esld:ly="3" esld:w="6" esld:h="3">
+				<Private type="OpenSCD-Linked-IEDs">
+					<esld:IEDName esld:name="IED2" esld:x="4" esld:y="4" esld:lx="5" esld:ly="5"/>
+				</Private>
+			</Bay>
 		</VoltageLevel>
 	</Substation>
-	<IED name="IED1" />
-	<IED name="IED2" esld:x="4" esld:y="4" esld:lx="5" esld:ly="5" />
-	<IED name="IED3" esld:x="10" esld:y="4" esld:lx="11" esld:ly="5" />
-	<IED name="IED4" esld:x="4" esld:y="11" esld:lx="5" esld:ly="12" />
-	<IED name="IED5" esld:x="19" esld:y="11" esld:lx="20" esld:ly="12" />
+	<IED name="IED1"/>
+	<IED name="IED2"/>
+	<IED name="IED3"/>
+	<IED name="IED4"/>
+	<IED name="IED5"/>
 </SCL>`;
 
 export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
@@ -596,10 +611,61 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
 	<Header id="scd"/>
     <Substation name="AA1" esld:w="35" esld:h="25">
         <VoltageLevel name="E1" esld:x="1" esld:y="1" esld:lx="1" esld:ly="1" esld:w="25" esld:h="17">
-            <Bay name="B6" esld:x="18" esld:y="10" esld:lx="18" esld:ly="10.5" esld:w="7" esld:h="7"/><Bay name="B5" esld:x="10" esld:y="10" esld:lx="10" esld:ly="10.5" esld:w="7" esld:h="7"/><Bay name="B4" esld:x="2" esld:y="10" esld:lx="2" esld:ly="10.5" esld:w="7" esld:h="7"/><Bay name="B3" esld:x="18" esld:y="2" esld:lx="18" esld:ly="2.5" esld:w="7" esld:h="7"/><Bay name="B2" esld:x="10" esld:y="2" esld:lx="10" esld:ly="2.5" esld:w="7" esld:h="7"/><Bay name="B1" esld:x="2" esld:y="2" esld:lx="2" esld:ly="2.5" esld:w="7" esld:h="7"/>
+            <Bay name="B6" esld:x="18" esld:y="10" esld:lx="18" esld:ly="10.5" esld:w="7" esld:h="7">
+				<Private type="OpenSCD-Linked-IEDs">
+					<esld:IEDName esld:name="s64" esld:x="18" esld:y="11" esld:lx="18" esld:ly="11.5"/>
+					<esld:IEDName esld:name="s63" esld:x="20" esld:y="15" esld:lx="20" esld:ly="17"/>
+					<esld:IEDName esld:name="s62" esld:x="21" esld:y="10" esld:lx="22" esld:ly="11"/>
+					<esld:IEDName esld:name="s61" esld:x="20" esld:y="10" esld:lx="19" esld:ly="11"/> 
+					<esld:IEDName esld:name="t6" esld:x="21" esld:y="13" esld:lx="22" esld:ly="14"/>
+				</Private>
+			</Bay>
+			<Bay name="B5" esld:x="10" esld:y="10" esld:lx="10" esld:ly="10.5" esld:w="7" esld:h="7">
+				<Private type="OpenSCD-Linked-IEDs">
+					<esld:IEDName esld:name="s54" esld:x="14" esld:y="11" esld:lx="14" esld:ly="11.5"/>
+					<esld:IEDName esld:name="s53" esld:x="15" esld:y="15" esld:lx="15" esld:ly="17"/>
+					<esld:IEDName esld:name="s52" esld:x="13" esld:y="16" esld:lx="12" esld:ly="17"/>
+					<esld:IEDName esld:name="s51" esld:x="16" esld:y="10" esld:lx="16" esld:ly="10.5"/>
+					<esld:IEDName esld:name="t5" esld:x="13" esld:y="13" esld:lx="14" esld:ly="14"/>
+				</Private>
+			</Bay>
+			<Bay name="B4" esld:x="2" esld:y="10" esld:lx="2" esld:ly="10.5" esld:w="7" esld:h="7">
+				<Private type="OpenSCD-Linked-IEDs">
+					<esld:IEDName esld:name="s42" esld:x="5" esld:y="14" esld:lx="5" esld:ly="16"/>
+					<esld:IEDName esld:name="s41" esld:x="5" esld:y="12" esld:lx="5" esld:ly="12.5"/>
+					<esld:IEDName esld:name="ts4" esld:x="5" esld:y="13" esld:lx="6" esld:ly="14"/>
+				</Private>
+			</Bay>
+			<Bay name="B3" esld:x="18" esld:y="2" esld:lx="18" esld:ly="2.5" esld:w="7" esld:h="7">
+				<Private type="OpenSCD-Linked-IEDs">
+					<esld:IEDName esld:name="s34" esld:x="20" esld:y="4" esld:lx="20" esld:ly="4.5"/>
+					<esld:IEDName esld:name="s33" esld:x="23" esld:y="6" esld:lx="23" esld:ly="8"/>
+					<esld:IEDName esld:name="s32" esld:x="19" esld:y="6" esld:lx="19" esld:ly="8"/>
+					<esld:IEDName esld:name="s31" esld:x="24" esld:y="4" esld:lx="24" esld:ly="4.5"/>
+					<esld:IEDName esld:name="ts3" esld:x="21" esld:y="5" esld:lx="21.5" esld:ly="7"/>
+				</Private>
+			</Bay>
+			<Bay name="B2" esld:x="10" esld:y="2" esld:lx="10" esld:ly="2.5" esld:w="7" esld:h="7">
+				<Private type="OpenSCD-Linked-IEDs">
+					<esld:IEDName esld:name="s24" esld:x="13" esld:y="8" esld:lx="14" esld:ly="9"/>
+					<esld:IEDName esld:name="s23" esld:x="10" esld:y="8" esld:lx="11" esld:ly="9"/>
+					<esld:IEDName esld:name="s22" esld:x="14" esld:y="7" esld:lx="15" esld:ly="8"/>
+					<esld:IEDName esld:name="s21" esld:x="13" esld:y="2" esld:lx="14" esld:ly="3"/>
+					<esld:IEDName esld:name="ts2" esld:x="13" esld:y="5" esld:lx="14" esld:ly="6"/>
+				</Private>
+			</Bay>
+			<Bay name="B1" esld:x="2" esld:y="2" esld:lx="2" esld:ly="2.5" esld:w="7" esld:h="7">
+				<Private type="OpenSCD-Linked-IEDs">
+					<esld:IEDName esld:name="s14" esld:x="5" esld:y="2" esld:lx="6" esld:ly="3"/>
+					<esld:IEDName esld:name="s13" esld:x="5" esld:y="8" esld:lx="6" esld:ly="9"/>
+					<esld:IEDName esld:name="s12" esld:x="7" esld:y="5" esld:lx="8" esld:ly="6"/>
+					<esld:IEDName esld:name="s11" esld:x="3" esld:y="5" esld:lx="2" esld:ly="6"/>
+					<esld:IEDName esld:name="ts1" esld:x="5" esld:y="5" esld:lx="6" esld:ly="6"/>
+				</Private>
+			</Bay>
         </VoltageLevel>
     </Substation>
-	<IED name="ts1" esld:x="5" esld:y="5" esld:lx="6" esld:ly="6">
+	<IED name="ts1">
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
@@ -627,7 +693,7 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
             </Server>
         </AccessPoint>
     </IED>
-	<IED name="s11" esld:x="3" esld:y="5" esld:lx="2" esld:ly="6">
+	<IED name="s11">
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
@@ -644,7 +710,7 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
             </Server>
         </AccessPoint>
     </IED>
-	<IED name="s12" esld:x="7" esld:y="5" esld:lx="8" esld:ly="6">
+	<IED name="s12">
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
@@ -657,7 +723,7 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
             </Server>
         </AccessPoint>
     </IED>
-	<IED name="s13" esld:x="5" esld:y="8" esld:lx="6" esld:ly="9">
+	<IED name="s13">
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
@@ -670,7 +736,7 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
             </Server>
         </AccessPoint>
     </IED>
-	<IED name="s14" esld:x="5" esld:y="2" esld:lx="6" esld:ly="3">
+	<IED name="s14">
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
@@ -683,7 +749,7 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
             </Server>
         </AccessPoint>
     </IED>
-    <IED name="ts2" esld:x="13" esld:y="5" esld:lx="14" esld:ly="6">
+    <IED name="ts2">
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
@@ -709,7 +775,7 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
             </Server>
         </AccessPoint>
     </IED>
-	<IED name="s21" esld:x="13" esld:y="2" esld:lx="14" esld:ly="3">
+	<IED name="s21">
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
@@ -722,7 +788,7 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
             </Server>
         </AccessPoint>
     </IED>
-    <IED name="s22" esld:x="14" esld:y="7" esld:lx="15" esld:ly="8">
+    <IED name="s22">
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
@@ -735,7 +801,7 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
             </Server>
         </AccessPoint>
     </IED>
-    <IED name="s23" esld:x="10" esld:y="8" esld:lx="11" esld:ly="9">
+    <IED name="s23">
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
@@ -748,7 +814,7 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
             </Server>
         </AccessPoint>
     </IED>
-    <IED name="s24" esld:x="13" esld:y="8" esld:lx="14" esld:ly="9">
+    <IED name="s24">
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
@@ -761,7 +827,7 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
             </Server>
         </AccessPoint>
     </IED>
-    <IED name="ts3" esld:x="21" esld:y="5" esld:lx="21.5" esld:ly="7">
+    <IED name="ts3">
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
@@ -788,7 +854,7 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
             </Server>
         </AccessPoint>
     </IED>
-	<IED name="s31" esld:x="24" esld:y="4" esld:lx="24" esld:ly="4.5">
+	<IED name="s31">
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
@@ -804,7 +870,7 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
             </Server>
         </AccessPoint>
     </IED>
-    <IED name="s32" esld:x="19" esld:y="6" esld:lx="19" esld:ly="8">
+    <IED name="s32">
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
@@ -820,7 +886,7 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
             </Server>
         </AccessPoint>
     </IED>
-    <IED name="s33" esld:x="23" esld:y="6" esld:lx="23" esld:ly="8">
+    <IED name="s33">
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
@@ -836,7 +902,7 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
             </Server>
         </AccessPoint>
     </IED>
-    <IED name="s34" esld:x="20" esld:y="4" esld:lx="20" esld:ly="4.5">
+    <IED name="s34">
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
@@ -852,7 +918,7 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
             </Server>
         </AccessPoint>
     </IED>
-    <IED name="ts4" esld:x="5" esld:y="13" esld:lx="6" esld:ly="14">
+    <IED name="ts4">
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
@@ -874,7 +940,7 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
             </Server>
         </AccessPoint>
     </IED>
-	<IED name="s41" esld:x="5" esld:y="12" esld:lx="5" esld:ly="12.5">
+	<IED name="s41">
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
@@ -887,7 +953,7 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
             </Server>
         </AccessPoint>
     </IED>
-    <IED name="s42" esld:x="5" esld:y="14" esld:lx="5" esld:ly="16">
+    <IED name="s42">
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
@@ -900,12 +966,12 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
             </Server>
         </AccessPoint>
     </IED>
-    <IED name="t5" esld:x="13" esld:y="13" esld:lx="14" esld:ly="14">
+    <IED name="t5">
         <AccessPoint name="AP1">
             <LN lnClass="IHMI" inst="1"/>
         </AccessPoint>
     </IED>
-	<IED name="s51" esld:x="16" esld:y="10" esld:lx="16" esld:ly="10.5">
+	<IED name="s51">
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
@@ -932,7 +998,7 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
             </Server>
         </AccessPoint>
     </IED>
-    <IED name="s52" esld:x="13" esld:y="16" esld:lx="12" esld:ly="17">
+    <IED name="s52">
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
@@ -957,7 +1023,7 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
             </Server>
         </AccessPoint>
     </IED>
-    <IED name="s53" esld:x="15" esld:y="15" esld:lx="15" esld:ly="17">
+    <IED name="s53">
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
@@ -982,7 +1048,7 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
             </Server>
         </AccessPoint>
     </IED>
-    <IED name="s54" esld:x="14" esld:y="11" esld:lx="14" esld:ly="11.5">
+    <IED name="s54">
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
@@ -1007,12 +1073,12 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
             </Server>
         </AccessPoint>
     </IED>
-    <IED name="t6" esld:x="21" esld:y="13" esld:lx="22" esld:ly="14">
+    <IED name="t6">
         <AccessPoint name="AP1">
             <LN lnClass="IHMI" inst="1"/>
         </AccessPoint>
     </IED>
-	<IED name="s61" esld:x="20" esld:y="10" esld:lx="19" esld:ly="11">
+	<IED name="s61">
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
@@ -1037,7 +1103,7 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
             </Server>
         </AccessPoint>
     </IED>
-    <IED name="s62" esld:x="21" esld:y="10" esld:lx="22" esld:ly="11">
+    <IED name="s62">
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
@@ -1062,7 +1128,7 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
             </Server>
         </AccessPoint>
     </IED>
-    <IED name="s63" esld:x="20" esld:y="15" esld:lx="20" esld:ly="17">
+    <IED name="s63">
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
@@ -1087,7 +1153,7 @@ export const commScd = `<?xml version="1.0" encoding="UTF-8"?>
             </Server>
         </AccessPoint>
     </IED>
-    <IED name="s64" esld:x="18" esld:y="11" esld:lx="18" esld:ly="11.5">
+    <IED name="s64">
         <AccessPoint name="AP1">
             <Server>
                 <LDevice inst="lDevice">
@@ -1158,6 +1224,11 @@ export const lNodeConn = `<?xml version="1.0" encoding="UTF-8"?>
 				</ConnectivityNode>
 			</Bay>
 			<Bay name="Q01" esld:x="2" esld:y="3" esld:lx="1.5" esld:ly="3.5" esld:w="7" esld:h="10">
+			<Private type="OpenSCD-Linked-IEDs">
+					<esld:IEDName esld:name="BCU" esld:x="8" esld:y="3" esld:lx="9" esld:ly="4"/>
+					<esld:IEDName esld:name="SCU" esld:x="7" esld:y="6" esld:lx="8" esld:ly="7"/> 
+					<esld:IEDName esld:name="MU" esld:x="8" esld:y="9" esld:lx="9" esld:ly="10"/>
+				</Private>
 				<ConductingEquipment type="IFL" name="IFL1" esld:x="4" esld:y="11" esld:lx="5" esld:ly="12">
 					<Terminal esld:uuid="2ea05a09-49be-46e7-b93e-9a8c81c59ced" name="T1" connectivityNode="AA1/E1/Q01/L1" substationName="AA1" voltageLevelName="E1" bayName="Q01" cNodeName="L1"/>
 				</ConductingEquipment>
@@ -1248,7 +1319,7 @@ export const lNodeConn = `<?xml version="1.0" encoding="UTF-8"?>
 			</Bay>
 		</VoltageLevel>
 	</Substation>
-	<IED name="BCU" esld:x="8" esld:y="3" esld:lx="9" esld:ly="4"/>
-	<IED name="SCU" esld:x="7" esld:y="6" esld:lx="8" esld:ly="7"/>
-	<IED name="MU" esld:x="8" esld:y="9" esld:lx="9" esld:ly="10"/>
+	<IED name="BCU"/>
+	<IED name="SCU"/>
+	<IED name="MU"/>
 </SCL>`;

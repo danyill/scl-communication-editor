@@ -1,28 +1,66 @@
 /* eslint-disable import/no-extraneous-dependencies */
 /* eslint-disable no-return-assign */
-import { css, html, LitElement, TemplateResult } from 'lit';
+import {
+  css,
+  html,
+  LitElement,
+  nothing,
+  PropertyValues,
+  TemplateResult,
+} from 'lit';
 import { property, query, state } from 'lit/decorators.js';
 
-import '@material/mwc-dialog';
+import { ScopedElementsMixin } from '@open-wc/scoped-elements/lit-element.js';
+
 import '@material/mwc-button';
-import type { Dialog } from '@material/mwc-dialog';
+import '@material/mwc-icon';
+import '@material/mwc-list';
+import '@material/mwc-list/mwc-list-item';
 
-import { newEditEvent } from '@openscd/open-scd-core';
+import { MdDialog } from '@scopedelement/material-web/dialog/MdDialog.js';
+import { MdIcon } from '@scopedelement/material-web/icon/MdIcon.js';
 
-import '@openenergytools/filterable-lists/dist/action-list.js';
-import type { ActionItem } from '@openenergytools/filterable-lists/dist/action-list.js';
+import { MdTextButton } from '@scopedelement/material-web/button/MdTextButton.js';
+import { MdList } from '@scopedelement/material-web/list/MdList.js';
+import { MdListItem } from '@scopedelement/material-web/list/MdListItem.js';
 
-import { identity, unsubscribe } from '@openenergytools/scl-lib';
+import { newEditEvent } from '@openenergytools/open-scd-core';
 
-import './communication-mapping-editor.js';
+import { ActionList } from '@openenergytools/filterable-lists/dist/ActionList.js';
+import type { ActionItem } from '@openenergytools/filterable-lists/dist/ActionList.js';
+
+import {
+  controlBlockGseOrSmv,
+  identity,
+  unsubscribe,
+} from '@openenergytools/scl-lib';
 
 import { Connection } from './foundation/types.js';
 import {
-  inputReference as inputReferenceHeadline,
+  getExistingSupervision,
+  inputReference,
   inputSupportingText,
+  isSubscribed,
 } from './foundation/utils.js';
 
+import { sldNs } from './foundation/sldUtil.js';
+import { CommunicationMappingEditor } from './communication-mapping-editor.js';
+import {
+  gseControlPath,
+  iconFromPath,
+  logControlPath,
+  reportControlPath,
+  sampledValueControlPath,
+} from './foundation/icons.js';
+
 type SelectConnectionEvent = CustomEvent<Connection>;
+
+const icons = {
+  LogControl: iconFromPath(logControlPath),
+  ReportControl: iconFromPath(reportControlPath),
+  SampledValueControl: iconFromPath(sampledValueControlPath),
+  GSEControl: iconFromPath(gseControlPath),
+};
 
 function combineSelectors<T>(...selectors: T[][]): string {
   return selectors
@@ -43,27 +81,36 @@ function clientLnConnections(doc: XMLDocument): Connection[] {
     ['ReportControl']
   );
 
-  return Array.from(doc.querySelectorAll(controlBlockSelector)).flatMap(
-    sourceCb => {
+  const iedToNameElement = new Map<string, Element>();
+  Array.from(doc.getElementsByTagNameNS(sldNs, 'IEDName')).forEach(iedName =>
+    iedToNameElement.set(iedName.getAttributeNS(sldNs, 'name')!, iedName)
+  );
+
+  return Array.from(doc.querySelectorAll(controlBlockSelector))
+    .flatMap(sourceCb => {
       const sourceIed = sourceCb.closest('IED')!;
+      const sourceIedName = iedToNameElement.get(
+        sourceIed.getAttribute('name')!
+      );
 
       const sortedClientLns: Record<
         string,
-        { ied: Element; inputs: Element[] }
+        { ied: Element; iedName: Element; inputs: Element[] }
       > = {};
       sourceCb
         .querySelectorAll(':scope > RptEnabled > ClientLN')
         .forEach(clientLn => {
-          const targetIed = doc.querySelector(
-            `:root > IED[name="${clientLn.getAttribute('iedName')}"`
-          );
-          const targetIedName = targetIed?.getAttribute('name');
-          if (!targetIed || !targetIedName) return;
-          if (sortedClientLns[targetIedName])
-            sortedClientLns[targetIedName].inputs.push(clientLn);
+          const iedName = clientLn.getAttribute('iedName')!;
+          const targetIed = doc.querySelector(`:root > IED[name="${iedName}"`);
+          const targetIedName = iedToNameElement.get(iedName);
+
+          if (!targetIed || !targetIedName || !iedName) return;
+          if (sortedClientLns[iedName])
+            sortedClientLns[iedName].inputs.push(clientLn);
           else
-            sortedClientLns[targetIedName] = {
+            sortedClientLns[iedName] = {
               ied: targetIed,
+              iedName: targetIedName,
               inputs: [clientLn],
             };
         });
@@ -73,15 +120,27 @@ function clientLnConnections(doc: XMLDocument): Connection[] {
 
         return {
           id,
-          source: { ied: sourceIed, controlBlock: sourceCb },
+          source: {
+            ied: sourceIed,
+            iedName: sourceIedName,
+            controlBlock: sourceCb,
+          },
           target,
         };
       });
-    }
-  );
+    })
+    .filter(
+      (conn): conn is Connection & { source: { iedName: Element } } =>
+        conn.source.iedName !== undefined
+    );
 }
 
 function parseExtRefs(doc: XMLDocument): Connection[] {
+  const iedToNameElement = new Map<string, Element>();
+  Array.from(doc.getElementsByTagNameNS(sldNs, 'IEDName')).forEach(iedName =>
+    iedToNameElement.set(iedName.getAttributeNS(sldNs, 'name')!, iedName)
+  );
+
   const controlBlockSelector = combineSelectors(
     [':root > IED > AccessPoint > Server > LDevice'],
     ['>'],
@@ -90,10 +149,11 @@ function parseExtRefs(doc: XMLDocument): Connection[] {
     ['GSEControl', 'SampledValueControl']
   );
 
-  return Array.from(doc.querySelectorAll(controlBlockSelector)).flatMap(
-    controlBlock => {
+  return Array.from(doc.querySelectorAll(controlBlockSelector))
+    .flatMap(controlBlock => {
       const sourceIed = controlBlock.closest('IED')!;
-      const iedName = sourceIed!.getAttribute('name');
+      const iedName = sourceIed.getAttribute('name')!;
+      const sourceIedName = iedToNameElement.get(iedName);
       const ldInst = controlBlock.closest('LDevice')!.getAttribute('inst');
       const anyLn = controlBlock.closest('LN,LN0')!;
       const prefix = anyLn!.getAttribute('prefix');
@@ -111,7 +171,10 @@ function parseExtRefs(doc: XMLDocument): Connection[] {
         ]
       );
 
-      const targetMap: Record<string, { ied: Element; inputs: Element[] }> = {};
+      const targetMap: Record<
+        string,
+        { ied: Element; iedName: Element; inputs: Element[] }
+      > = {};
 
       Array.from(doc.querySelectorAll(extRefSelector))
         .filter(extRef => {
@@ -130,29 +193,60 @@ function parseExtRefs(doc: XMLDocument): Connection[] {
         })
         .forEach(extRef => {
           const target = extRef.closest('IED');
-          const targetName = target!.getAttribute('name');
+          const targetName = target!.getAttribute('name')!;
+          const targetIedName = iedToNameElement.get(targetName);
           if (targetName && targetMap[targetName])
             targetMap[targetName].inputs.push(extRef);
-          else if (targetName)
-            targetMap[targetName] = { ied: target!, inputs: [extRef] };
+          else if (targetIedName)
+            targetMap[targetName] = {
+              ied: target!,
+              iedName: targetIedName,
+              inputs: [extRef],
+            };
         });
 
       return Object.values(targetMap).map(target => {
         const id = `${identity(controlBlock)}${target.ied}`;
-        return { id, source: { ied: sourceIed, controlBlock }, target };
+        return {
+          id,
+          source: { ied: sourceIed, iedName: sourceIedName, controlBlock },
+          target,
+        };
       });
-    }
-  );
+    })
+    .filter(
+      (
+        conn
+      ): conn is Connection & { source: { ied: Element } } & {
+        target: { ied: Element };
+      } => conn.source.iedName !== null && conn.source.iedName !== null
+    );
 }
 
 function connectionHeading(conn: Connection): string {
   const sourceIedName = conn.source.ied.getAttribute('name');
   const cbName = conn.source.controlBlock.getAttribute('name');
   const targetIedName = conn.target.ied.getAttribute('name');
-  return `${sourceIedName}:${cbName} ->${targetIedName}`;
+  return `${sourceIedName}:${cbName} ⮕ ${targetIedName}`;
 }
 
-export default class SlcCommunicationEditor extends LitElement {
+export default class SldCommunicationEditor extends ScopedElementsMixin(
+  LitElement
+) {
+  static scopedElements = {
+    'md-icon': MdIcon,
+    'md-dialog': MdDialog,
+    'md-text-button': MdTextButton,
+    'md-list': MdList,
+    'md-list-item': MdListItem,
+    'communication-mapping-editor': CommunicationMappingEditor,
+    'action-list': ActionList,
+    'mwc-button': customElements.get('mwc-button'),
+    'mwc-icon': customElements.get('mwc-icon'),
+    'mwc-list': customElements.get('mwc-list'),
+    'mwc-list-item': customElements.get('mwc-list-item'),
+  };
+
   @property({ attribute: false })
   doc?: XMLDocument;
 
@@ -170,7 +264,24 @@ export default class SlcCommunicationEditor extends LitElement {
   @state()
   selectedConnection?: Connection;
 
-  @query('mwc-dialog') removeSelection!: Dialog;
+  @state()
+  parsedExtRefs: Connection[] = this.substation
+    ? parseExtRefs(this.substation.ownerDocument)
+    : [];
+
+  private _cachedConnections: Connection[] = [];
+
+  get cachedConnections(): Connection[] {
+    if (!this.substation) return [];
+    if (!(this._cachedConnections.length > 0)) {
+      this._cachedConnections = [
+        ...clientLnConnections(this.substation.ownerDocument),
+      ];
+    }
+    return this._cachedConnections;
+  }
+
+  @query('#mappingDetails') mappingDetails!: MdDialog;
 
   removeInputs(inputs: Element[]): void {
     const removeClientLNs = inputs
@@ -184,67 +295,243 @@ export default class SlcCommunicationEditor extends LitElement {
     const edits = [...removeClientLNs, ...removeExtRefs];
 
     if (edits.length > 0) this.dispatchEvent(newEditEvent(edits));
+    this._cachedConnections = [];
   }
 
   removeAllInputs(): void {
     const inputs = this.selectedConnection?.target.inputs ?? [];
     this.removeInputs(inputs);
+    this.parsedExtRefs = this.substation
+      ? parseExtRefs(this.substation.ownerDocument)
+      : [];
 
     this.requestUpdate();
   }
 
-  renderRemoveDialog(): TemplateResult {
+  // eslint-disable-next-line class-methods-use-this
+  getCommunicationDetails(connection: Connection | undefined): TemplateResult {
+    if (!connection?.source?.controlBlock)
+      return html`<p>No connection selected</p>`;
+
+    const cb = connection.source.controlBlock;
+    const comm = controlBlockGseOrSmv(cb);
+
+    const vlan = comm?.querySelector(
+      'Address > P[type="VLAN-ID"]'
+    )?.textContent;
+    const vlanPriority = comm?.querySelector(
+      'Address > P[type="VLAN-PRIORITY"]'
+    )?.textContent;
+    const appID = comm?.querySelector('Address > P[type="APPID"]')?.textContent;
+    const macAddress = comm?.querySelector(
+      'Address > P[type="MAC-Address"]'
+    )?.textContent;
+    const minTime = comm?.querySelector('MinTime')?.textContent;
+    const maxTime = comm?.querySelector('MaxTime')?.textContent;
+
+    const dataSet = cb.getAttribute('datSet');
+    const confRev = cb.getAttribute('confRev');
+    const smvID = cb.getAttribute('smvID');
+
+    return html`<table id="comDetails">
+      <tbody>
+        ${smvID
+          ? html`<tr>
+              <td>SMV ID</td>
+              <td>${smvID}</td>
+            </tr>`
+          : null}
+        ${dataSet
+          ? html`<tr>
+              <td>Data Set</td>
+              <td>${dataSet}</td>
+            </tr>`
+          : null}
+        ${confRev
+          ? html`<tr>
+              <td>Configuration Revision</td>
+              <td>${confRev}</td>
+            </tr>`
+          : null}
+        ${vlan
+          ? html`<tr>
+              <td>VLAN ID</td>
+              <td>0x${vlan} (${parseInt(vlan, 16).toString()})</td>
+            </tr>`
+          : null}
+        ${vlanPriority
+          ? html`<tr>
+              <td>VLAN Priority</td>
+              <td>${vlanPriority}</td>
+            </tr>`
+          : null}
+        ${appID
+          ? html`<tr>
+              <td>Application ID</td>
+              <td>${appID}</td>
+            </tr>`
+          : null}
+        ${macAddress
+          ? html`<tr>
+              <td>MAC Address</td>
+              <td>${macAddress}</td>
+            </tr>`
+          : null}
+        ${minTime
+          ? html`<tr>
+              <td>Minimum Time</td>
+              <td>${minTime}</td>
+            </tr>`
+          : null}
+        ${maxTime
+          ? html`<tr>
+              <td>Maximum Time</td>
+              <td>${maxTime}</td>
+            </tr>`
+          : null}
+      </tbody>
+    </table>`;
+  }
+
+  protected updated(changedProperties: PropertyValues): void {
+    super.updated(changedProperties);
+
+    // When a new document is loaded or we do a subscription/we will reset the parsed ExtRefs
+    if (
+      changedProperties.has('docName') ||
+      changedProperties.has('editCount')
+    ) {
+      this.parsedExtRefs = this.substation
+        ? parseExtRefs(this.substation.ownerDocument)
+        : [];
+    }
+  }
+
+  renderSubscription(): TemplateResult {
     const heading = this.selectedConnection
       ? connectionHeading(this.selectedConnection)
       : 'No connection selected';
 
-    const items: ActionItem[] = this.selectedConnection
-      ? this.selectedConnection.target.inputs.map(input => ({
-          headline: inputReferenceHeadline(input),
-          supportingText: inputSupportingText(input),
-        }))
-      : [];
+    const fcdaItems: ActionItem[] = [];
+    const extRefItems: ActionItem[] = [];
 
-    const content = html`<action-list
-      filterable
-      .items=${items}
-    ></action-list>`;
+    this.selectedConnection?.target.inputs
+      .filter(input => isSubscribed(input))
+      .forEach(input => {
+        const fcdaInfo = inputReference(input);
+        const extRefInfo = inputSupportingText(input);
 
-    return html`<mwc-dialog heading="${heading}"
-      >${content}
-      <mwc-button
-        slot="secondaryAction"
-        label="discard"
-        dialogAction="cancel"
-        style="--mdc-theme-primary: var(--oscd-error)"
-      ></mwc-button>
-      <mwc-button
-        slot="primaryAction"
-        label="remove all"
-        icon="link_off"
-        @click="${this.removeAllInputs}"
-        dialogAction="cancel"
-      ></mwc-button
-    ></mwc-dialog>`;
+        fcdaItems.push({
+          headline: fcdaInfo.fcdaRef,
+          supportingText: fcdaInfo.desc,
+          endingIcon: 'arrow_forward',
+        });
+
+        extRefItems.push({
+          headline: extRefInfo.extRefRef,
+          supportingText: extRefInfo.desc,
+        });
+      });
+
+    let supervisionId: string | null = null;
+    let supervisionDesc: string | null = null;
+
+    if (this.selectedConnection) {
+      const { controlBlock } = this.selectedConnection.source;
+      const { ied } = this.selectedConnection.target;
+
+      const supervision = getExistingSupervision(controlBlock, ied);
+
+      if (supervision) {
+        const supervisionType =
+          controlBlock.tagName === 'GSEControl' ? 'LGOS' : 'LSVS';
+        const refSelector =
+          supervisionType === 'LGOS'
+            ? 'DOI[name="GoCBRef"]'
+            : 'DOI[name="SvCBRef"]';
+
+        supervisionDesc =
+          supervision?.getAttribute('desc') ??
+          supervision
+            .querySelector(`:scope > ${refSelector}`)
+            ?.getAttribute('desc') ??
+          null;
+        identity(supervision);
+        supervisionId = `${identity(supervision)}`.substring(
+          ied.getAttribute('name')!.length + 2
+        );
+      }
+    }
+
+    const content = html`<div slot="content">
+      ${supervisionId
+        ? html`<p id="supervisionInfo">
+            <md-icon id="supIcon">monitor_heart</md-icon>Supervision:
+            ${supervisionId}${supervisionDesc
+              ? html` (${supervisionDesc})`
+              : ''}
+          </p>`
+        : null}
+      <details>
+        <summary>Message Information</summary>
+        ${this.getCommunicationDetails(this.selectedConnection)}
+      </details>
+      <div id="lists">
+        <action-list
+          class="vertical-list"
+          .items=${fcdaItems}
+          height="72"
+        ></action-list>
+        <action-list
+          class="vertical-list"
+          .items=${extRefItems}
+          height="72"
+        ></action-list>
+      </div>
+    </div>`;
+
+    const cbType = this.selectedConnection?.source.controlBlock.tagName;
+
+    return html`<md-dialog id="mappingDetails">
+      <div slot="headline">
+        <md-icon>${cbType ? icons[cbType as keyof typeof icons] : ''}</md-icon
+        >${heading}
+      </div>
+      ${content}
+      <div slot="actions">
+        <md-text-button
+          class="warning"
+          @click=${() => {
+            this.removeAllInputs();
+            this.mappingDetails.close();
+          }}
+          >Remove All<md-icon class="warning" slot="icon"
+            >delete_forever</md-icon
+          ></md-text-button
+        >
+        <md-text-button @click=${() => this.mappingDetails.close()}
+          >Close</md-text-button
+        >
+      </div>
+    </md-dialog>`;
   }
 
   render() {
     if (!this.substation) return html`<main>No substation section</main>`;
+    if (this.parsedExtRefs.length === 0)
+      return html`<main>No connections to display</main>`;
 
     return html`<main>
       <communication-mapping-editor
         .substation=${this.substation}
         .gridSize=${this.gridSize}
-        .connections=${[
-          ...clientLnConnections(this.substation.ownerDocument),
-          ...parseExtRefs(this.substation.ownerDocument),
-        ]}
+        .connections=${[...this.cachedConnections, ...this.parsedExtRefs]}
         @select-connection="${(evt: SelectConnectionEvent) => {
           this.selectedConnection = evt.detail;
-          this.removeSelection.show();
+          this.mappingDetails.show();
         }}"
       ></communication-mapping-editor>
-      ${this.renderRemoveDialog()}
+      ${this.renderSubscription()}
     </main>`;
   }
 
@@ -265,8 +552,81 @@ export default class SlcCommunicationEditor extends LitElement {
       --md-sys-color-on-primary: var(--oscd-base2);
       --md-sys-color-on-surface-variant: var(--oscd-base00);
       --md-menu-container-color: var(--oscd-base3);
-      font-family: var(--oscd-theme-text-font);
       --md-sys-color-surface-container-highest: var(--oscd-base2);
+      --mdc-icon-font: 'Material Symbols Outlined';
+    }
+
+    #mappingDetails {
+      width: auto;
+      max-width: max-content;
+      min-width: min-content;
+    }
+
+    #lists {
+      display: flex;
+    }
+
+    .vertical-list {
+      flex: 1;
+      z-index: 2;
+    }
+
+    .warning {
+      color: var(--oscd-error, red);
+      --md-sys-color-primary: var(--oscd-error, red);
+    }
+
+    .arrow {
+      height: 72px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      padding: 4px;
+    }
+
+    td {
+      padding: 4px 8px;
+      border: 1px solid var(--oscd-base-3, #f9f9f9);
+      text-align: left;
+    }
+
+    tr:nth-child(even) {
+      background-color: var(--oscd-base-2, #f9f9f9);
+    }
+
+    details {
+      margin: 8px;
+    }
+
+    #comDetails {
+      width: auto;
+    }
+
+    #supervisionInfo {
+      display: flex;
+      align-items: center;
+      margin: 0px;
+      border: 0px;
+    }
+
+    #supIcon {
+      display: inline-block;
+      padding: 10px;
+    }
+
+    div[slot='headline'] {
+      padding-top: 12px;
+      padding-left: 12px;
+      padding-bottom: 0px;
+    }
+
+    div[slot='content'] {
+      padding-top: 0px;
+      padding-bottom: 0px;
     }
   `;
 }
