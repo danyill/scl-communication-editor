@@ -12,10 +12,8 @@ import { classMap } from 'lit/directives/class-map.js';
 
 import { ScopedElementsMixin } from '@open-wc/scoped-elements/lit-element.js';
 
-import '@material/mwc-button';
 import '@material/mwc-icon-button';
 import '@material/mwc-icon-button-toggle';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import '@material/mwc-fab';
 import '@material/mwc-textfield';
 import type { IconButtonToggle } from '@material/mwc-icon-button-toggle';
@@ -37,6 +35,12 @@ import {
 } from './foundation/sldUtil.js';
 import { serviceColoring, svgConnectionGenerator } from './foundation/paths.js';
 import { IED, Connection } from './foundation/types.js';
+import { getCommAddress } from './foundation/utils.js';
+
+import '@scopedelement/material-web/checkbox/checkbox.js';
+import '@scopedelement/material-web/list/list.js';
+import '@scopedelement/material-web/list/list-item.js';
+import '@scopedelement/material-web/button/text-button.js';
 
 export class CommunicationMappingEditor extends ScopedElementsMixin(
   LitElement
@@ -44,9 +48,12 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
   static scopedElements = {
     'mwc-fab': customElements.get('mwc-fab'),
     'mwc-textfield': customElements.get('mwc-textfield'),
-    'mwc-button': customElements.get('mwc-button'),
     'mwc-icon-button': customElements.get('mwc-icon-button'),
     'mwc-icon-button-toggle': customElements.get('mwc-icon-button-toggle'),
+    'md-list': customElements.get('md-list'),
+    'md-list-item': customElements.get('md-list-item'),
+    'md-checkbox': customElements.get('md-checkbox'),
+    'md-text-button': customElements.get('md-text-button'),
   };
 
   @property({ attribute: false })
@@ -54,9 +61,6 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
 
   @property({ type: Number })
   gridSize!: number;
-
-  // @property({ attribute: false })
-  // connections: Connection[] = [];
 
   @property({ attribute: false, hasChanged: (v, o) => v !== o })
   connections: Connection[] = [];
@@ -101,7 +105,32 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
 
   @state() cbNameFilter = '';
 
+  @state() vlanFilter = '';
+
+  @state() priorityFilter = '';
+
+  @state() selectedVlans: string[] = [];
+
+  @state() selectedPriorities: string[] = [];
+
   @state() showFilterBox = false;
+
+  @state() showVlanDropdown = false;
+
+  @state() showPriorityDropdown = false;
+
+  // Manufacturer / IED type filter states
+  @state() showManufacturerDropdown = false;
+
+  @state() manufacturerValues: string[] = [];
+
+  @state() typeValues: string[] = [];
+
+  @state() manufacturerTypeMap: Record<string, string[]> = {};
+
+  @state() selectedManufacturers: string[] = [];
+
+  @state() selectedTypes: string[] = [];
 
   @state() editMode = false;
 
@@ -112,6 +141,10 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
   @state() placingLabel?: Element;
 
   @state() placingOffset: Point = [0, 0];
+
+  @state() vlanValues: string[] = [];
+
+  @state() priorityValues: string[] = [];
 
   mouseX = 0;
 
@@ -144,13 +177,11 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
   };
 
   connectedCallback() {
-    // eslint-disable-next-line wc/guard-super-call
     super.connectedCallback();
     window.addEventListener('keydown', this.handleKeydown);
   }
 
   disconnectedCallback() {
-    // eslint-disable-next-line wc/guard-super-call
     super.disconnectedCallback();
     window.removeEventListener('keydown', this.handleKeydown);
   }
@@ -220,7 +251,6 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
 
     this.dispatchEvent(newEditEvent(edits));
 
-    // wrap IEDName elements within Private element if required
     const enclosingEdits: Edit[] = [];
     if (
       element.localName === 'IEDName' &&
@@ -254,14 +284,12 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
       );
     }
 
-    // remove empty Private element if required
     if (
       element.localName === 'IEDName' &&
       oldParent?.tagName === 'Private' &&
       oldParent?.getAttribute('type') === 'OpenSCD-Linked-IEDs' &&
       oldParent.childElementCount === 0
     ) {
-      // TODO: In next API release, dispatch with "squash" to support undo/redo more cleanly
       enclosingEdits.push({ node: oldParent });
     }
 
@@ -306,13 +334,25 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
     this.sourceIEDFilter = '';
     this.targetIEDFilter = '';
     this.cbNameFilter = '';
+    this.vlanFilter = '';
+    this.priorityFilter = '';
+    this.selectedVlans = [];
+    this.selectedPriorities = [];
+    this.selectedManufacturers = [];
+    this.selectedTypes = [];
   }
 
   activeFilter(): boolean {
     return (
       this.sourceIEDFilter !== '' ||
       this.targetIEDFilter !== '' ||
-      this.cbNameFilter !== ''
+      this.cbNameFilter !== '' ||
+      this.vlanFilter !== '' ||
+      this.priorityFilter !== '' ||
+      this.selectedVlans.length > 0 ||
+      this.selectedPriorities.length > 0 ||
+      this.selectedManufacturers.length > 0 ||
+      this.selectedTypes.length > 0
     );
   }
 
@@ -326,24 +366,316 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
     return !terms.some(term => iedName.includes(term));
   }
 
-  filterTargetIED(conn: Connection): boolean {
-    if (this.targetIEDFilter === '') return false;
-
-    const terms = this.targetIEDFilter.split(' ');
-
-    const iedName = conn.target.ied.getAttribute('name')!;
-
+  filterSourceIED(conn: Connection): boolean {
+    if (this.sourceIEDFilter === '') return false;
+    const terms = this.sourceIEDFilter.split(' ');
+    const iedName = conn.source.ied.getAttribute('name')!;
     return !terms.some(term => iedName.includes(term));
   }
 
-  filterSourceIED(conn: Connection): boolean {
-    if (this.sourceIEDFilter === '') return false;
-
-    const terms = this.sourceIEDFilter.split(' ');
-
-    const iedName = conn.source.ied.getAttribute('name')!;
-
+  filterTargetIED(conn: Connection): boolean {
+    if (this.targetIEDFilter === '') return false;
+    const terms = this.targetIEDFilter.split(' ');
+    const iedName = conn.target.ied.getAttribute('name')!;
     return !terms.some(term => iedName.includes(term));
+  }
+
+  static parseCsvTokens(text: string): string[] {
+    return text
+      .split(',')
+      .map(t => t.trim())
+      .filter(t => t !== '');
+  }
+
+  static matchPriorityToken(
+    prioText: string | null | undefined,
+    token: string
+  ): boolean {
+    if (!prioText) return false;
+    const pt = prioText.trim();
+    const tk = token.trim();
+    if (pt === tk) return true;
+    const pNum = Number(pt);
+    const tNum = Number(tk);
+    if (!Number.isNaN(pNum) && !Number.isNaN(tNum)) return pNum === tNum;
+    return false;
+  }
+
+  static matchVlanToken(
+    vlanText: string | null | undefined,
+    token: string
+  ): boolean {
+    const vNum = CommunicationMappingEditor.parseVlanRawToNumber(vlanText);
+    const tNum = CommunicationMappingEditor.parseVlanTokenToNumber(token);
+    if (vNum === null || tNum === null) return false;
+    return vNum === tNum;
+  }
+
+  // Parse a VLAN value as it appears in SCL (raw, may be decimal or hex-like)
+  static parseVlanRawToNumber(text: string | null | undefined): number | null {
+    if (!text) return null;
+    const t = text.trim();
+    if (!t) return null;
+    if (/^0x[0-9a-f]+$/i.test(t)) {
+      const n = Number.parseInt(t.slice(2), 16);
+      return Number.isNaN(n) ? null : n;
+    }
+    if (/^[0-9]+$/.test(t)) {
+      const n = Number.parseInt(t, 10);
+      return Number.isNaN(n) ? null : n;
+    }
+    if (/^[0-9a-f]+$/i.test(t) && /[a-f]/i.test(t)) {
+      const n = Number.parseInt(t, 16);
+      return Number.isNaN(n) ? null : n;
+    }
+    return null;
+  }
+
+  // Parse user-entered token; default to decimal unless explicit hex (0x) or contains a-f
+  static parseVlanTokenToNumber(
+    text: string | null | undefined
+  ): number | null {
+    if (!text) return null;
+    const t = text.trim();
+    if (!t) return null;
+    if (/^0x[0-9a-f]+$/i.test(t)) {
+      const n = Number.parseInt(t.slice(2), 16);
+      return Number.isNaN(n) ? null : n;
+    }
+    if (/^[0-9]+$/.test(t)) {
+      const n = Number.parseInt(t, 10);
+      return Number.isNaN(n) ? null : n;
+    }
+    if (/^[0-9a-f]+$/i.test(t) && /[a-f]/i.test(t)) {
+      const n = Number.parseInt(t, 16);
+      return Number.isNaN(n) ? null : n;
+    }
+    return null;
+  }
+
+  static canonicalVlanDecimal(text: string | null | undefined): string {
+    const n = CommunicationMappingEditor.parseVlanRawToNumber(text);
+    return n === null ? '' : String(n);
+  }
+
+  // Priority parsing/canonicalization
+  static parsePriorityRawToNumber(
+    text: string | null | undefined
+  ): number | null {
+    if (!text) return null;
+    const t = text.trim();
+    if (!t) return null;
+    if (/^[0-9]+$/.test(t)) {
+      const n = Number.parseInt(t, 10);
+      return Number.isNaN(n) ? null : n;
+    }
+    // accept hex raw just in case (uncommon)
+    if (/^0x[0-9a-f]+$/i.test(t)) {
+      const n = Number.parseInt(t.slice(2), 16);
+      return Number.isNaN(n) ? null : n;
+    }
+    return null;
+  }
+
+  static parsePriorityTokenToNumber(
+    text: string | null | undefined
+  ): number | null {
+    if (!text) return null;
+    const t = text.trim();
+    if (!t) return null;
+    if (/^0x[0-9a-f]+$/i.test(t)) {
+      const n = Number.parseInt(t.slice(2), 16);
+      return Number.isNaN(n) ? null : n;
+    }
+    if (/^[0-9]+$/.test(t)) {
+      const n = Number.parseInt(t, 10);
+      return Number.isNaN(n) ? null : n;
+    }
+    return null;
+  }
+
+  static canonicalPriorityDecimal(text: string | null | undefined): string {
+    const n = CommunicationMappingEditor.parsePriorityRawToNumber(text);
+    return n === null ? '' : String(n);
+  }
+
+  private parseVlanInputToSelected(text: string): void {
+    const rawTokens = CommunicationMappingEditor.parseCsvTokens(text);
+    const availableCanonicals = new Map<string, string>();
+    this.vlanValues.forEach(raw => {
+      const c = CommunicationMappingEditor.canonicalVlanDecimal(raw);
+      if (c) availableCanonicals.set(c, raw);
+    });
+
+    const selectedCanonical = new Set<string>();
+    rawTokens.forEach(t => {
+      const n = CommunicationMappingEditor.parseVlanTokenToNumber(t);
+      const c = n === null ? '' : String(n);
+      if (c && availableCanonicals.has(c)) selectedCanonical.add(c);
+    });
+
+    this.selectedVlans = Array.from(selectedCanonical.values()).sort(
+      (a, b) => Number(a) - Number(b)
+    );
+
+    this.vlanFilter = this.selectedVlans.join(',');
+  }
+
+  private syncVlanFilterFromSelection(): void {
+    const canonical = this.selectedVlans.join(',');
+    if (this.vlanFilter !== canonical) this.vlanFilter = canonical;
+  }
+
+  private handleVlanTextInput(evt: Event): void {
+    const text = (evt.target as HTMLInputElement).value;
+    this.vlanFilter = text;
+    this.parseVlanInputToSelected(text);
+  }
+
+  private toggleVlanSelection(v: string) {
+    const canonical = CommunicationMappingEditor.canonicalVlanDecimal(v);
+    if (!canonical) return;
+    const sel = this.selectedVlans;
+    this.selectedVlans = sel.includes(canonical)
+      ? sel.filter(x => x !== canonical)
+      : [...sel, canonical];
+    this.selectedVlans.sort((a, b) => Number(a) - Number(b));
+    this.syncVlanFilterFromSelection();
+  }
+
+  // Priority two-way sync helpers
+  private parsePriorityInputToSelected(text: string): void {
+    const rawTokens = CommunicationMappingEditor.parseCsvTokens(text);
+    const availableCanonicals = new Map<string, string>();
+    this.priorityValues.forEach(raw => {
+      const c = CommunicationMappingEditor.canonicalPriorityDecimal(raw);
+      if (c) availableCanonicals.set(c, raw);
+    });
+
+    const selectedCanonical = new Set<string>();
+    rawTokens.forEach(t => {
+      const n = CommunicationMappingEditor.parsePriorityTokenToNumber(t);
+      const c = n === null ? '' : String(n);
+      if (c && availableCanonicals.has(c)) selectedCanonical.add(c);
+    });
+
+    this.selectedPriorities = Array.from(selectedCanonical.values()).sort(
+      (a, b) => Number(a) - Number(b)
+    );
+
+    this.priorityFilter = this.selectedPriorities.join(',');
+  }
+
+  private syncPriorityFilterFromSelection(): void {
+    const canonical = this.selectedPriorities.join(',');
+    if (this.priorityFilter !== canonical) this.priorityFilter = canonical;
+  }
+
+  private handlePriorityTextInput(evt: Event): void {
+    const text = (evt.target as HTMLInputElement).value;
+    this.priorityFilter = text;
+    this.parsePriorityInputToSelected(text);
+  }
+
+  private togglePrioritySelection(p: string) {
+    const canonical = CommunicationMappingEditor.canonicalPriorityDecimal(p);
+    if (!canonical) return;
+    const sel = this.selectedPriorities;
+    this.selectedPriorities = sel.includes(canonical)
+      ? sel.filter(x => x !== canonical)
+      : [...sel, canonical];
+    this.selectedPriorities.sort((a, b) => Number(a) - Number(b));
+    this.syncPriorityFilterFromSelection();
+  }
+
+  filterVlan(conn: Connection): boolean {
+    if (
+      conn.source.controlBlock.tagName !== 'GSEControl' &&
+      conn.source.controlBlock.tagName !== 'SampledValueControl'
+    )
+      return false;
+
+    const comm = getCommAddress(conn.source.controlBlock).querySelector(
+      'Address'
+    );
+    const vlanRaw =
+      comm?.querySelector('P[type="VLAN-ID"]')?.textContent ?? null;
+    const vlanCanonical =
+      CommunicationMappingEditor.canonicalVlanDecimal(vlanRaw);
+
+    if (this.vlanFilter !== '') {
+      const tokens = CommunicationMappingEditor.parseCsvTokens(this.vlanFilter);
+      if (
+        tokens.length > 0 &&
+        !tokens.some(t => CommunicationMappingEditor.matchVlanToken(vlanRaw, t))
+      )
+        return true;
+    }
+
+    if (this.selectedVlans.length > 0) {
+      if (!vlanCanonical || !this.selectedVlans.includes(vlanCanonical))
+        return true;
+    }
+
+    return false;
+  }
+
+  filterPriority(conn: Connection): boolean {
+    if (
+      conn.source.controlBlock.tagName !== 'GSEControl' &&
+      conn.source.controlBlock.tagName !== 'SampledValueControl'
+    )
+      return false;
+
+    const comm = getCommAddress(conn.source.controlBlock).querySelector(
+      'Address'
+    );
+    const prioRaw =
+      comm?.querySelector('P[type="VLAN-PRIORITY"]')?.textContent ?? null;
+    const prioCanonical =
+      CommunicationMappingEditor.canonicalPriorityDecimal(prioRaw);
+
+    if (this.priorityFilter !== '') {
+      const tokens = CommunicationMappingEditor.parseCsvTokens(
+        this.priorityFilter
+      );
+      if (
+        tokens.length > 0 &&
+        !tokens.some(t => {
+          const n = CommunicationMappingEditor.parsePriorityTokenToNumber(t);
+          return n !== null && String(n) === prioCanonical;
+        })
+      )
+        return true;
+    }
+
+    if (this.selectedPriorities.length > 0) {
+      if (!prioCanonical || !this.selectedPriorities.includes(prioCanonical))
+        return true;
+    }
+
+    return false;
+  }
+
+  // Manufacturer filter: exclude when active and neither endpoint matches
+  filterManufacturer(conn: Connection): boolean {
+    if (this.selectedManufacturers.length === 0) return false;
+    const sMan = conn.source.ied.getAttribute('manufacturer') || '';
+    const tMan = conn.target.ied.getAttribute('manufacturer') || '';
+    return !(
+      this.selectedManufacturers.includes(sMan) ||
+      this.selectedManufacturers.includes(tMan)
+    );
+  }
+
+  // IED type filter: exclude when active and neither endpoint matches
+  filterIedType(conn: Connection): boolean {
+    if (this.selectedTypes.length === 0) return false;
+    const sType = conn.source.ied.getAttribute('type') || '';
+    const tType = conn.target.ied.getAttribute('type') || '';
+    return !(
+      this.selectedTypes.includes(sType) || this.selectedTypes.includes(tType)
+    );
   }
 
   filterConnections(conn: Connection) {
@@ -365,10 +697,30 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
 
     const cbName = this.filterCbName(conn);
 
-    const receive = this.filterRcv && conn.source.iedName === this.selectedIed;
-    const send = this.filterSend && conn.target.iedName === this.selectedIed;
+    const vlan = this.filterVlan(conn);
 
-    return !(service || ied || source || target || cbName || receive || send);
+    const priority = this.filterPriority(conn);
+
+    const manufacturer = this.filterManufacturer(conn);
+
+    const iedType = this.filterIedType(conn);
+
+    const receive = this.filterRcv && conn.source.ied === this.selectedIed;
+    const send = this.filterSend && conn.target.ied === this.selectedIed;
+
+    return !(
+      service ||
+      ied ||
+      source ||
+      target ||
+      cbName ||
+      receive ||
+      send ||
+      vlan ||
+      priority ||
+      manufacturer ||
+      iedType
+    );
   }
 
   resetIedSelection(): void {
@@ -513,14 +865,98 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
       </g></svg>`;
   }
 
-  // eslint-disable-next-line class-methods-use-this
+  private computeVlanPriorityValues(): void {
+    const vlanSet = new Set<string>();
+    const prioSet = new Set<string>();
+    for (const c of this.connections) {
+      const tag = c.source.controlBlock.tagName;
+      if (tag === 'GSEControl' || tag === 'SampledValueControl') {
+        const comm = c.source.controlBlock.querySelector('Address');
+        const v = comm?.querySelector('P[type="VLAN-ID"]')?.textContent?.trim();
+        const p = comm
+          ?.querySelector('P[type="VLAN-PRIORITY"]')
+          ?.textContent?.trim();
+        if (v) vlanSet.add(v);
+        if (p) prioSet.add(p);
+      }
+    }
+    this.vlanValues = Array.from(vlanSet).sort();
+    this.priorityValues = Array.from(prioSet).sort(
+      (a, b) => Number(a) - Number(b)
+    );
+  }
+
+  private computeManufacturerTypeValues(): void {
+    const mMap: Record<string, Set<string>> = {};
+    const manufacturers = new Set<string>();
+    const types = new Set<string>();
+    const ieds = Array.from(
+      this.substation.ownerDocument.querySelectorAll(':scope > IED')
+    );
+    for (const ied of ieds) {
+      const man = ied.getAttribute('manufacturer')?.trim() || '';
+      const type = ied.getAttribute('type')?.trim() || '';
+      if (man) manufacturers.add(man);
+      if (type) types.add(type);
+      if (man) {
+        if (!mMap[man]) mMap[man] = new Set<string>();
+        if (type) mMap[man].add(type);
+      }
+    }
+    this.manufacturerValues = Array.from(manufacturers.values()).sort();
+    this.typeValues = Array.from(types.values()).sort();
+    this.manufacturerTypeMap = Object.fromEntries(
+      Object.entries(mMap).map(([man, set]) => [
+        man,
+        Array.from(set.values()).sort(),
+      ])
+    );
+  }
+
+  // Toggle helpers
+  private toggleManufacturerSelection(man: string) {
+    this.selectedManufacturers = this.selectedManufacturers.includes(man)
+      ? this.selectedManufacturers.filter(m => m !== man)
+      : [...this.selectedManufacturers, man];
+  }
+
+  private toggleTypeSelection(type: string) {
+    this.selectedTypes = this.selectedTypes.includes(type)
+      ? this.selectedTypes.filter(t => t !== type)
+      : [...this.selectedTypes, type];
+  }
+
+  updated(changed: PropertyValues) {
+    super.updated(changed);
+    if (changed.has('connections') || changed.has('substation')) {
+      this.computeVlanPriorityValues();
+      this.computeManufacturerTypeValues();
+    }
+  }
+
+  private toggleVlanExpanded() {
+    this.showVlanDropdown = !this.showVlanDropdown;
+  }
+
+  private togglePriorityExpanded() {
+    this.showPriorityDropdown = !this.showPriorityDropdown;
+  }
+
   renderFilterBox(): TemplateResult {
     if (!this.showFilterBox) return html``;
+
+    const { vlanValues, priorityValues: prioValues } = this;
+    const { manufacturerValues, manufacturerTypeMap } = this;
 
     return html`<div class="filter box" style="">
       <h3 class="filter title">
         Filter connections
-        <nav style="float: right;">
+        <nav style="float: right; display: flex; gap: 4px;">
+          <mwc-icon-button
+            icon="restart_alt"
+            title="Reset all filters"
+            @click="${() => this.clearFilter()}"
+          ></mwc-icon-button>
           <mwc-icon-button
             icon="close"
             @click="${() => {
@@ -550,6 +986,119 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
           this.cbNameFilter = (evt.target as HTMLInputElement).value;
         }}"
       ></mwc-textfield>
+      <mwc-textfield
+        label="VLAN IDs (CSV)"
+        helper="Decimal or Hex (e.g. 101, 0x65)"
+        value="${this.vlanFilter}"
+        @input="${(evt: Event) => {
+          this.handleVlanTextInput(evt);
+        }}"
+      ></mwc-textfield>
+      <div class="md-filter-group">
+        <md-text-button @click="${() => this.toggleVlanExpanded()}">
+          ${this.showVlanDropdown ? 'Hide VLAN IDs' : 'Show VLAN IDs'}
+        </md-text-button>
+        ${this.showVlanDropdown
+          ? html`<md-list>
+              ${vlanValues.map(
+                v => html`<md-list-item
+                  @click="${() => this.toggleVlanSelection(v)}"
+                >
+                  <md-checkbox
+                    slot="start"
+                    ?checked="${this.selectedVlans.includes(
+                      CommunicationMappingEditor.canonicalVlanDecimal(v)
+                    )}"
+                  ></md-checkbox>
+                  <span>
+                    ${(() => {
+                      const dec =
+                        CommunicationMappingEditor.canonicalVlanDecimal(v);
+                      const raw = v;
+                      if (raw.startsWith('0x') || /[a-f]/i.test(raw))
+                        return `${raw} (dec ${dec})`;
+                      const decNum = Number(dec);
+                      const hex = `0x${decNum.toString(16).toUpperCase()}`;
+                      return `${raw} (hex ${hex})`;
+                    })()}
+                  </span>
+                </md-list-item>`
+              )}
+            </md-list>`
+          : nothing}
+      </div>
+      <mwc-textfield
+        label="VLAN Priorities (CSV)"
+        value="${this.priorityFilter}"
+        @input="${(evt: Event) => {
+          this.handlePriorityTextInput(evt);
+        }}"
+      ></mwc-textfield>
+      <div class="md-filter-group">
+        <md-text-button @click="${() => this.togglePriorityExpanded()}">
+          ${this.showPriorityDropdown
+            ? 'Hide VLAN Priorities'
+            : 'Show VLAN Priorities'}
+        </md-text-button>
+        ${this.showPriorityDropdown
+          ? html`<md-list>
+              ${prioValues.map(
+                p => html`<md-list-item
+                  @click="${() => this.togglePrioritySelection(p)}"
+                >
+                  <md-checkbox
+                    slot="start"
+                    ?checked="${this.selectedPriorities.includes(
+                      CommunicationMappingEditor.canonicalPriorityDecimal(p)
+                    )}"
+                  ></md-checkbox>
+                  <span>${p}</span>
+                </md-list-item>`
+              )}
+            </md-list>`
+          : nothing}
+      </div>
+      <div class="md-filter-group">
+        <md-text-button
+          @click="${() => {
+            this.showManufacturerDropdown = !this.showManufacturerDropdown;
+          }}"
+        >
+          ${this.showManufacturerDropdown
+            ? 'Hide Manufacturers / Types'
+            : 'Show Manufacturers / Types'}
+        </md-text-button>
+        ${this.showManufacturerDropdown
+          ? html`<md-list>
+              ${manufacturerValues.map(
+                man => html`
+                  <md-list-item
+                    @click="${() => this.toggleManufacturerSelection(man)}"
+                  >
+                    <md-checkbox
+                      slot="start"
+                      ?checked="${this.selectedManufacturers.includes(man)}"
+                    ></md-checkbox>
+                    <span>${man}</span>
+                  </md-list-item>
+                  ${manufacturerTypeMap[man]?.map(
+                    t => html`<md-list-item
+                      class="type-item"
+                      style="padding-left: 32px;"
+                      @click="${() => this.toggleTypeSelection(t)}"
+                    >
+                      <md-checkbox
+                        slot="start"
+                        ?checked="${this.selectedTypes.includes(t)}"
+                      ></md-checkbox>
+                      <span>${t}</span>
+                    </md-list-item>`
+                  )}
+                `
+              )}
+            </md-list>`
+          : nothing}
+      </div>
     </div>`;
   }
 
@@ -800,14 +1349,17 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
     }
 
     .filter.box {
-      width: 250px;
-      height: 280px;
+      width: 300px;
+      height: auto; /* intrinsic */
+      max-height: 80vh; /* fallback */
+      max-height: calc(100dvh - 20px); /* dynamic viewport */
       position: fixed;
       bottom: 5px;
       right: 5px;
       border: 2px solid var(--oscd-theme-base01);
       background-color: var(--oscd-theme-base3);
       border-radius: 5px;
+      overflow-y: auto;
     }
 
     .filter.title {
@@ -820,6 +1372,7 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
       margin: 0px;
       line-height: 52px;
       padding-left: 0.3em;
+      user-select: none; /* make heading text non-selectable */
     }
 
     .filter.button {
@@ -831,6 +1384,27 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
     .linked > rect {
       fill: black;
       opacity: 0.1;
+    }
+
+    md-text-button {
+      margin-left: 10px;
+    }
+
+    .md-filter-group {
+      margin: 8px 10px;
+    }
+    .md-filter-group md-list {
+      max-height: 150px;
+      overflow: auto;
+      border: 1px solid var(--oscd-theme-base01);
+      border-radius: 4px;
+    }
+    .md-filter-group md-list-item {
+      cursor: pointer;
+    }
+    .md-filter-group md-list-item.type-item span {
+      font-size: 0.9em;
+      opacity: 0.9;
     }
   `;
 }

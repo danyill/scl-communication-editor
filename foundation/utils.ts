@@ -193,3 +193,46 @@ export function getExistingSupervision(
 
   return candidates !== undefined ? candidates.closest('LN')! : null;
 }
+
+/** @returns the cartesian product of `arrays` */
+export function crossProduct<T>(...arrays: T[][]): T[][] {
+  return arrays.reduce<T[][]>(
+    (a, b) => <T[][]>a.flatMap(d => b.map(e => [d, e].flat())),
+    [[]]
+  );
+}
+
+export function getCommAddress(ctrlBlock: Element): Element {
+  const doc = ctrlBlock.ownerDocument;
+
+  const ctrlLdInst = ctrlBlock.closest('LDevice')!.getAttribute('inst');
+  const addressTag = ctrlBlock.tagName === 'GSEControl' ? 'GSE' : 'SMV';
+  const ied = ctrlBlock.closest('IED')!;
+  const iedName = ied.getAttribute('name');
+  const apName = ctrlBlock.closest('AccessPoint')?.getAttribute('name');
+
+  const cbName = ctrlBlock.getAttribute('name');
+
+  let apNames = [];
+  const serverAts = ied.querySelectorAll(
+    `AccessPoint > ServerAt[apName="${apName}"`
+  );
+  if (serverAts) {
+    const serverAtNames = Array.from(serverAts).map(ap =>
+      ap.closest('AccessPoint')!.getAttribute('name')
+    );
+    apNames = [apName, ...serverAtNames];
+  } else {
+    apNames = [apName];
+  }
+
+  const connectedAps = `Communication > SubNetwork > ConnectedAP[iedName="${iedName}"]`;
+  const connectedApNames = apNames.map(ap => `[apName="${ap}"]`);
+  const addressElement = `${addressTag}[ldInst="${ctrlLdInst}"][cbName="${cbName}"]`;
+
+  return doc.querySelector(
+    crossProduct([connectedAps], connectedApNames, ['>'], [addressElement])
+      .map(strings => strings.join(''))
+      .join(',')
+  )!;
+}
