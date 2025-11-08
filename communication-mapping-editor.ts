@@ -65,6 +65,15 @@ export class CommunicationMappingEditor extends LitElement {
 
   @state() cbNameFilter = '';
 
+  // VLAN and priority filters for GOOSE (GSEControl) messages
+  @state() vlanFilter = '';
+
+  @state() priorityFilter = '';
+
+  @state() selectedVlans: string[] = [];
+
+  @state() selectedPriorities: string[] = [];
+
   @state() showFilterBox = false;
 
   @state() editMode = false;
@@ -196,13 +205,21 @@ export class CommunicationMappingEditor extends LitElement {
     this.sourceIEDFilter = '';
     this.targetIEDFilter = '';
     this.cbNameFilter = '';
+    this.vlanFilter = '';
+    this.priorityFilter = '';
+    this.selectedVlans = [];
+    this.selectedPriorities = [];
   }
 
   activeFilter(): boolean {
     return (
       this.sourceIEDFilter !== '' ||
       this.targetIEDFilter !== '' ||
-      this.cbNameFilter !== ''
+      this.cbNameFilter !== '' ||
+      this.vlanFilter !== '' ||
+      this.priorityFilter !== '' ||
+      this.selectedVlans.length > 0 ||
+      this.selectedPriorities.length > 0
     );
   }
 
@@ -216,24 +233,130 @@ export class CommunicationMappingEditor extends LitElement {
     return !terms.some(term => iedName.includes(term));
   }
 
-  filterTargetIED(conn: Connection): boolean {
-    if (this.targetIEDFilter === '') return false;
-
-    const terms = this.targetIEDFilter.split(' ');
-
-    const iedName = conn.target.ied.getAttribute('name')!;
-
+  filterSourceIED(conn: Connection): boolean {
+    if (this.sourceIEDFilter === '') return false;
+    const terms = this.sourceIEDFilter.split(' ');
+    const iedName = conn.source.ied.getAttribute('name')!;
     return !terms.some(term => iedName.includes(term));
   }
 
-  filterSourceIED(conn: Connection): boolean {
-    if (this.sourceIEDFilter === '') return false;
-
-    const terms = this.sourceIEDFilter.split(' ');
-
-    const iedName = conn.source.ied.getAttribute('name')!;
-
+  filterTargetIED(conn: Connection): boolean {
+    if (this.targetIEDFilter === '') return false;
+    const terms = this.targetIEDFilter.split(' ');
+    const iedName = conn.target.ied.getAttribute('name')!;
     return !terms.some(term => iedName.includes(term));
+  }
+
+  // Helpers to match VLAN and priority values against user input
+  static parseCsvTokens(text: string): string[] {
+    return text
+      .split(',')
+      .map(t => t.trim())
+      .filter(t => t !== '');
+  }
+
+  static matchVlanToken(
+    vlanText: string | null | undefined,
+    token: string
+  ): boolean {
+    if (!vlanText) return false;
+    const vt = vlanText.trim().toLowerCase();
+    const tk = token.trim().toLowerCase();
+
+    // direct string match (e.g. hex representation)
+    if (vt === tk.replace(/^0x/, '')) return true;
+    if (vt === tk) return true;
+
+    // numeric comparisons: try interpreting both as numbers
+    const tryParse = (s: string) => {
+      if (s.startsWith('0x')) return parseInt(s.slice(2), 16);
+      // hex-looking value (letters a-f) treat as hex
+      if (/^[0-9a-f]+$/i.test(s) && /[a-f]/i.test(s)) return parseInt(s, 16);
+      const n = Number(s);
+      return Number.isNaN(n) ? NaN : n;
+    };
+
+    const vNum = tryParse(vt);
+    const tNum = tryParse(tk);
+    if (!Number.isNaN(vNum) && !Number.isNaN(tNum)) return vNum === tNum;
+
+    return false;
+  }
+
+  static matchPriorityToken(
+    prioText: string | null | undefined,
+    token: string
+  ): boolean {
+    if (!prioText) return false;
+    const pt = prioText.trim();
+    const tk = token.trim();
+    if (pt === tk) return true;
+    const pNum = Number(pt);
+    const tNum = Number(tk);
+    if (!Number.isNaN(pNum) && !Number.isNaN(tNum)) return pNum === tNum;
+    return false;
+  }
+
+  filterVlan(conn: Connection): boolean {
+    // Only apply VLAN filter to GOOSE (GSEControl) messages
+    if (conn.source.controlBlock.tagName !== 'GSEControl') return false;
+
+    const comm = conn.source.controlBlock.querySelector('Address');
+    const vlan = comm?.querySelector('P[type="VLAN-ID"]')?.textContent ?? null;
+
+    // text csv filter
+    if (this.vlanFilter !== '') {
+      const tokens = CommunicationMappingEditor.parseCsvTokens(this.vlanFilter);
+      if (
+        tokens.length > 0 &&
+        !tokens.some(t => CommunicationMappingEditor.matchVlanToken(vlan, t))
+      )
+        return true;
+    }
+
+    // checkbox selection filter
+    if (this.selectedVlans.length > 0) {
+      if (
+        !this.selectedVlans.some(t =>
+          CommunicationMappingEditor.matchVlanToken(vlan, t)
+        )
+      )
+        return true;
+    }
+
+    return false;
+  }
+
+  filterPriority(conn: Connection): boolean {
+    if (conn.source.controlBlock.tagName !== 'GSEControl') return false;
+
+    const comm = conn.source.controlBlock.querySelector('Address');
+    const prio =
+      comm?.querySelector('P[type="VLAN-PRIORITY"]')?.textContent ?? null;
+
+    if (this.priorityFilter !== '') {
+      const tokens = CommunicationMappingEditor.parseCsvTokens(
+        this.priorityFilter
+      );
+      if (
+        tokens.length > 0 &&
+        !tokens.some(t =>
+          CommunicationMappingEditor.matchPriorityToken(prio, t)
+        )
+      )
+        return true;
+    }
+
+    if (this.selectedPriorities.length > 0) {
+      if (
+        !this.selectedPriorities.some(t =>
+          CommunicationMappingEditor.matchPriorityToken(prio, t)
+        )
+      )
+        return true;
+    }
+
+    return false;
   }
 
   filterConnections(conn: Connection) {
@@ -255,10 +378,24 @@ export class CommunicationMappingEditor extends LitElement {
 
     const cbName = this.filterCbName(conn);
 
+    const vlan = this.filterVlan(conn);
+
+    const priority = this.filterPriority(conn);
+
     const receive = this.filterRcv && conn.source.ied === this.selectedIed;
     const send = this.filterSend && conn.target.ied === this.selectedIed;
 
-    return !(service || ied || source || target || cbName || receive || send);
+    return !(
+      service ||
+      ied ||
+      source ||
+      target ||
+      cbName ||
+      receive ||
+      send ||
+      vlan ||
+      priority
+    );
   }
 
   resetIedSelection(): void {
@@ -401,6 +538,21 @@ export class CommunicationMappingEditor extends LitElement {
   renderFilterBox(): TemplateResult {
     if (!this.showFilterBox) return html``;
 
+    // build lists of existing VLANs and priorities from GOOSE connections
+    const goose = this.connections.filter(
+      c => c.source.controlBlock.tagName === 'GSEControl'
+    );
+
+    const vlanSet = new Set<string>();
+    const prioSet = new Set<string>();
+    goose.forEach(c => {
+      const comm = c.source.controlBlock.querySelector('Address');
+      const v = comm?.querySelector('P[type="VLAN-ID"]')?.textContent;
+      const p = comm?.querySelector('P[type="VLAN-PRIORITY"]')?.textContent;
+      if (v) vlanSet.add(v);
+      if (p) prioSet.add(p);
+    });
+
     return html`<div class="filter box" style="">
       <h3 class="filter title">
         Filter connections
@@ -434,6 +586,62 @@ export class CommunicationMappingEditor extends LitElement {
           this.cbNameFilter = (evt.target as HTMLInputElement).value;
         }}"
       ></mwc-textfield>
+
+      <mwc-textfield
+        label="VLAN IDs (comma delimited, hex or decimal)"
+        value="${this.vlanFilter}"
+        @input="${(evt: Event) => {
+          this.vlanFilter = (evt.target as HTMLInputElement).value;
+        }}"
+      ></mwc-textfield>
+
+      <div style="padding: 8px; max-height: 90px; overflow: auto;">
+        <div style="font-weight: 400; margin-bottom: 4px;">Detected VLANs:</div>
+        ${Array.from(vlanSet).map(
+          v => html`<label style="display:block; font-weight:300;">
+            <input
+              type="checkbox"
+              .checked=${this.selectedVlans.includes(v)}
+              @click=${() => {
+                if (this.selectedVlans.includes(v))
+                  this.selectedVlans = this.selectedVlans.filter(x => x !== v);
+                else this.selectedVlans = [...this.selectedVlans, v];
+              }}
+            />
+            0x${v} (${parseInt(v, 16).toString()})
+          </label>`
+        )}
+      </div>
+
+      <mwc-textfield
+        label="VLAN Priority (comma delimited)"
+        value="${this.priorityFilter}"
+        @input="${(evt: Event) => {
+          this.priorityFilter = (evt.target as HTMLInputElement).value;
+        }}"
+      ></mwc-textfield>
+
+      <div style="padding: 8px; max-height: 90px; overflow: auto;">
+        <div style="font-weight: 400; margin-bottom: 4px;">
+          Detected Priorities:
+        </div>
+        ${Array.from(prioSet).map(
+          p => html`<label style="display:block; font-weight:300;">
+            <input
+              type="checkbox"
+              .checked=${this.selectedPriorities.includes(p)}
+              @click=${() => {
+                if (this.selectedPriorities.includes(p))
+                  this.selectedPriorities = this.selectedPriorities.filter(
+                    x => x !== p
+                  );
+                else this.selectedPriorities = [...this.selectedPriorities, p];
+              }}
+            />
+            ${p}
+          </label>`
+        )}
+      </div>
     </div>`;
   }
 
@@ -678,8 +886,8 @@ export class CommunicationMappingEditor extends LitElement {
     }
 
     .filter.box {
-      width: 250px;
-      height: 280px;
+      width: 300px;
+      height: 700px;
       position: fixed;
       bottom: 5px;
       right: 5px;
