@@ -271,6 +271,7 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
 
   private _cachedConnections: Connection[] = [];
 
+  @state()
   get cachedConnections(): Connection[] {
     if (!this.substation) return [];
     if (!(this._cachedConnections.length > 0)) {
@@ -279,6 +280,10 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
       ];
     }
     return this._cachedConnections;
+  }
+
+  set cachedConnections(conns) {
+    this._cachedConnections = conns;
   }
 
   @query('#mappingDetails') mappingDetails!: MdDialog;
@@ -301,9 +306,12 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
   removeAllInputs(): void {
     const inputs = this.selectedConnection?.target.inputs ?? [];
     this.removeInputs(inputs);
-    this.parsedExtRefs = this.substation
-      ? parseExtRefs(this.substation.ownerDocument)
-      : [];
+    this.parsedExtRefs = this.parsedExtRefs.filter(
+      conn => conn !== this.selectedConnection
+    );
+    this._cachedConnections = this._cachedConnections.filter(
+      conn => conn !== this.selectedConnection
+    );
 
     this.requestUpdate();
   }
@@ -396,13 +404,13 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
   protected updated(changedProperties: PropertyValues): void {
     super.updated(changedProperties);
 
-    // When a new document is loaded or we do a subscription/we will reset the parsed ExtRefs
-    if (
-      changedProperties.has('docName') ||
-      changedProperties.has('editCount')
-    ) {
+    // When a new document is loaded we reset the connections
+    if (changedProperties.has('doc')) {
       this.parsedExtRefs = this.substation
         ? parseExtRefs(this.substation.ownerDocument)
+        : [];
+      this.cachedConnections = this.substation
+        ? [...clientLnConnections(this.substation.ownerDocument)]
         : [];
     }
   }
