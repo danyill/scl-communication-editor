@@ -416,15 +416,13 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
     if (!text) return null;
     const t = text.trim();
     if (!t) return null;
+    // explicit hex with 0x
     if (/^0x[0-9a-f]+$/i.test(t)) {
       const n = Number.parseInt(t.slice(2), 16);
       return Number.isNaN(n) ? null : n;
     }
-    if (/^[0-9]+$/.test(t)) {
-      const n = Number.parseInt(t, 10);
-      return Number.isNaN(n) ? null : n;
-    }
-    if (/^[0-9a-f]+$/i.test(t) && /[a-f]/i.test(t)) {
+    // SCL stores VLAN-ID as hex string (no 0x). Treat hex-like as hex by default.
+    if (/^[0-9a-f]+$/i.test(t)) {
       const n = Number.parseInt(t, 16);
       return Number.isNaN(n) ? null : n;
     }
@@ -705,8 +703,15 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
 
     const iedType = this.filterIedType(conn);
 
-    const receive = this.filterRcv && conn.source.ied === this.selectedIed;
-    const send = this.filterSend && conn.target.ied === this.selectedIed;
+    // Correct directional filtering relative to the selected IED
+    const receive =
+      this.filterRcv &&
+      !!this.selectedIed &&
+      conn.target.iedName === this.selectedIed;
+    const send =
+      this.filterSend &&
+      !!this.selectedIed &&
+      conn.source.iedName === this.selectedIed;
 
     return !(
       service ||
@@ -836,6 +841,11 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
     const icon = svg`<use href="#${symbol}" xlink:href="#${symbol}"
                 pointer-events="none" />`;
 
+    const isSelected = this.selectedIed === ied.element && !this.editMode;
+    const backgroundRect = isSelected
+      ? svg`<rect width="1" height="1" fill="yellow" pointer-events="none" />`
+      : nothing;
+
     let handleClick: (() => void) | symbol = nothing;
     if (this.idle && this.editMode)
       handleClick = () => this.startPlacing(ied.element);
@@ -854,10 +864,11 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
     height="${1 * this.gridSize}"
     stroke-width="0.06"
     fill="none">
-    <g class="ied"
+    <g class="ied ${isSelected ? 'selected-ied' : ''}"
       id="#${ied.name}"
       transform="translate(${0} ${0})">
         <title>${ied.name}</title>
+        ${backgroundRect}
         ${icon}
         <rect width="1" height="1" fill="none" pointer-events="all"
         @click=${handleClick}
@@ -871,19 +882,32 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
     for (const c of this.connections) {
       const tag = c.source.controlBlock.tagName;
       if (tag === 'GSEControl' || tag === 'SampledValueControl') {
-        const comm = c.source.controlBlock.querySelector('Address');
-        const v = comm?.querySelector('P[type="VLAN-ID"]')?.textContent?.trim();
-        const p = comm
-          ?.querySelector('P[type="VLAN-PRIORITY"]')
-          ?.textContent?.trim();
-        if (v) vlanSet.add(v);
-        if (p) prioSet.add(p);
+        const gseOrSmv = getCommAddress(c.source.controlBlock);
+        const address = gseOrSmv?.querySelector('Address');
+        if (address) {
+          const v = address
+            .querySelector('P[type="VLAN-ID"]')
+            ?.textContent?.trim();
+          const p = address
+            .querySelector('P[type="VLAN-PRIORITY"]')
+            ?.textContent?.trim();
+          if (v) vlanSet.add(v);
+          if (p) prioSet.add(p);
+        }
       }
     }
-    this.vlanValues = Array.from(vlanSet).sort();
-    this.priorityValues = Array.from(prioSet).sort(
-      (a, b) => Number(a) - Number(b)
-    );
+    this.vlanValues = Array.from(vlanSet.values()).sort((a, b) => {
+      const an = CommunicationMappingEditor.parseVlanRawToNumber(a);
+      const bn = CommunicationMappingEditor.parseVlanRawToNumber(b);
+      if (an !== null && bn !== null) return an - bn;
+      return a.localeCompare(b);
+    });
+    this.priorityValues = Array.from(prioSet.values()).sort((a, b) => {
+      const an = CommunicationMappingEditor.parsePriorityRawToNumber(a);
+      const bn = CommunicationMappingEditor.parsePriorityRawToNumber(b);
+      if (an !== null && bn !== null) return an - bn;
+      return a.localeCompare(b);
+    });
   }
 
   private computeManufacturerTypeValues(): void {
@@ -915,15 +939,41 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
 
   // Toggle helpers
   private toggleManufacturerSelection(man: string) {
-    this.selectedManufacturers = this.selectedManufacturers.includes(man)
-      ? this.selectedManufacturers.filter(m => m !== man)
-      : [...this.selectedManufacturers, man];
+    // Deprecated: replaced by toggleManufacturerAll; kept for backward compatibility if referenced.
+    this.toggleManufacturerAll(man);
+  }
+
+  private toggleManufacturerAll(man: string) {
+    const types = this.manufacturerTypeMap[man] || [];
+    if (types.length === 0) return; // nothing to toggle
+    const allSelected = types.every(t => this.selectedTypes.includes(t));
+    if (allSelected) {
+      // unselect all its types
+      this.selectedTypes = this.selectedTypes.filter(t => !types.includes(t));
+    } else {
+      // select all missing types
+      this.selectedTypes = Array.from(
+        new Set([...this.selectedTypes, ...types])
+      );
+    }
+    this.recomputeSelectedManufacturers();
+  }
+
+  private recomputeSelectedManufacturers() {
+    const full: string[] = [];
+    for (const man of this.manufacturerValues) {
+      const types = this.manufacturerTypeMap[man] || [];
+      if (types.length && types.every(t => this.selectedTypes.includes(t)))
+        full.push(man);
+    }
+    this.selectedManufacturers = full;
   }
 
   private toggleTypeSelection(type: string) {
     this.selectedTypes = this.selectedTypes.includes(type)
       ? this.selectedTypes.filter(t => t !== type)
       : [...this.selectedTypes, type];
+    this.recomputeSelectedManufacturers();
   }
 
   updated(changed: PropertyValues) {
@@ -1012,14 +1062,12 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
                   ></md-checkbox>
                   <span>
                     ${(() => {
-                      const dec =
-                        CommunicationMappingEditor.canonicalVlanDecimal(v);
-                      const raw = v;
-                      if (raw.startsWith('0x') || /[a-f]/i.test(raw))
-                        return `${raw} (dec ${dec})`;
-                      const decNum = Number(dec);
-                      const hex = `0x${decNum.toString(16).toUpperCase()}`;
-                      return `${raw} (hex ${hex})`;
+                      const n =
+                        CommunicationMappingEditor.parseVlanRawToNumber(v);
+                      if (n === null) return v;
+                      const hex = `0x${n.toString(16).toUpperCase()}`;
+                      const dec = String(n);
+                      return `${hex} (dec ${dec})`;
                     })()}
                   </span>
                 </md-list-item>`
@@ -1070,32 +1118,38 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
         </md-text-button>
         ${this.showManufacturerDropdown
           ? html`<md-list>
-              ${manufacturerValues.map(
-                man => html`
-                  <md-list-item
-                    @click="${() => this.toggleManufacturerSelection(man)}"
-                  >
+              ${manufacturerValues.map(man => {
+                const types = manufacturerTypeMap[man] || [];
+                const allSelected =
+                  types.length > 0 &&
+                  types.every(t => this.selectedTypes.includes(t));
+                const someSelected =
+                  !allSelected &&
+                  types.some(t => this.selectedTypes.includes(t));
+                return html`
+                  <md-list-item @click=${() => this.toggleManufacturerAll(man)}>
                     <md-checkbox
                       slot="start"
-                      ?checked="${this.selectedManufacturers.includes(man)}"
+                      ?checked=${allSelected}
+                      .indeterminate=${someSelected}
                     ></md-checkbox>
                     <span>${man}</span>
                   </md-list-item>
-                  ${manufacturerTypeMap[man]?.map(
+                  ${types.map(
                     t => html`<md-list-item
                       class="type-item"
                       style="padding-left: 32px;"
-                      @click="${() => this.toggleTypeSelection(t)}"
+                      @click=${() => this.toggleTypeSelection(t)}
                     >
                       <md-checkbox
                         slot="start"
-                        ?checked="${this.selectedTypes.includes(t)}"
+                        ?checked=${this.selectedTypes.includes(t)}
                       ></md-checkbox>
                       <span>${t}</span>
                     </md-list-item>`
                   )}
-                `
-              )}
+                `;
+              })}
             </md-list>`
           : nothing}
       </div>
