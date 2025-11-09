@@ -14,7 +14,6 @@ import { ScopedElementsMixin } from '@open-wc/scoped-elements/lit-element.js';
 
 import '@material/mwc-icon-button';
 import '@material/mwc-icon-button-toggle';
-import '@material/mwc-fab';
 import '@material/mwc-textfield';
 import type { IconButtonToggle } from '@material/mwc-icon-button-toggle';
 
@@ -41,12 +40,13 @@ import '@scopedelement/material-web/checkbox/checkbox.js';
 import '@scopedelement/material-web/list/list.js';
 import '@scopedelement/material-web/list/list-item.js';
 import '@scopedelement/material-web/button/text-button.js';
+import '@scopedelement/material-web/fab/fab.js';
+import '@scopedelement/material-web/icon/icon.js';
 
 export class CommunicationMappingEditor extends ScopedElementsMixin(
   LitElement
 ) {
   static scopedElements = {
-    'mwc-fab': customElements.get('mwc-fab'),
     'mwc-textfield': customElements.get('mwc-textfield'),
     'mwc-icon-button': customElements.get('mwc-icon-button'),
     'mwc-icon-button-toggle': customElements.get('mwc-icon-button-toggle'),
@@ -54,6 +54,8 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
     'md-list-item': customElements.get('md-list-item'),
     'md-checkbox': customElements.get('md-checkbox'),
     'md-text-button': customElements.get('md-text-button'),
+    'md-fab': customElements.get('md-fab'),
+    'md-icon': customElements.get('md-icon'),
   };
 
   @property({ attribute: false })
@@ -1159,22 +1161,17 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
   renderFilterFab(): TemplateResult {
     return html`<nav class="filter button">
       ${this.activeFilter()
-        ? html`<mwc-fab
-            class="filter refresh"
-            style="padding-right: 10px;"
-            extended
-            icon="refresh"
-            label="Clear"
-            @click="${() => {
-              this.clearFilter();
-            }}"
-          ></mwc-fab>`
-        : nothing}<mwc-fab
-        icon="filter_alt"
+        ? html`<md-fab label="Clear" @click="${() => this.clearFilter()}">
+            <md-icon slot="icon">refresh</md-icon>
+          </md-fab>`
+        : nothing}
+      <md-fab
         @click="${() => {
           this.showFilterBox = true;
         }}"
-      ></mwc-fab>
+      >
+        <md-icon slot="icon">filter_alt</md-icon>
+      </md-fab>
     </nav>`;
   }
 
@@ -1432,7 +1429,20 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
     .filter.button {
       position: fixed;
       bottom: 15px;
-      right: 15px;
+      right: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .filter.button md-fab {
+      --md-fab-container-color: var(--md-sys-color-primary-container, #e0e0ff);
+      --md-fab-label-text-color: var(--md-sys-color-on-primary-container, #000);
+    }
+
+    .filter.button md-fab[label='Clear'] {
+      padding: 0 10px;
+      min-width: 96px;
     }
 
     .linked > rect {
