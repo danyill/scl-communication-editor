@@ -19,6 +19,7 @@ import '@material/mwc-list/mwc-list-item';
 
 import { MdDialog } from '@scopedelement/material-web/dialog/MdDialog.js';
 import { MdIcon } from '@scopedelement/material-web/icon/MdIcon.js';
+import '@scopedelement/material-web/switch/switch.js';
 
 import { MdTextButton } from '@scopedelement/material-web/button/MdTextButton.js';
 import { MdList } from '@scopedelement/material-web/list/MdList.js';
@@ -239,6 +240,7 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
     'md-text-button': MdTextButton,
     'md-list': MdList,
     'md-list-item': MdListItem,
+    'md-switch': customElements.get('md-switch'),
     'communication-mapping-editor': CommunicationMappingEditor,
     'action-list': ActionList,
     'mwc-button': customElements.get('mwc-button'),
@@ -263,6 +265,9 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
 
   @state()
   selectedConnection?: Connection;
+
+  @state()
+  showQuality = true;
 
   @state()
   parsedExtRefs: Connection[] = this.substation
@@ -425,10 +430,14 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
     const extRefItems: ActionItem[] = [];
 
     this.selectedConnection?.target.inputs
-      .filter(input => isSubscribed(input))
-      .forEach(input => {
+      .filter((input: Element) => isSubscribed(input))
+      .forEach((input: Element) => {
         const fcdaInfo = inputReference(input);
         const extRefInfo = inputSupportingText(input);
+
+        if (!this.showQuality && fcdaInfo.fcdaRef?.endsWith('.q')) {
+          return; // skip quality subscriptions when hidden
+        }
 
         fcdaItems.push({
           headline: fcdaInfo.fcdaRef,
@@ -485,6 +494,17 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
         <summary>Message Information</summary>
         ${this.getCommunicationDetails(this.selectedConnection)}
       </details>
+      <div id="qualityToggleRow">
+        <label id="qualityLabel" for="qualitySwitch">Show quality</label>
+        <md-switch
+          id="qualitySwitch"
+          ?selected=${this.showQuality}
+          @change=${(e: Event) => {
+            const sw = e.currentTarget as HTMLElement & { selected?: boolean };
+            this.showQuality = !!sw.selected;
+          }}
+        ></md-switch>
+      </div>
       <div id="lists">
         <action-list
           class="vertical-list"
@@ -573,6 +593,19 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
 
     #lists {
       display: flex;
+    }
+
+    #qualityToggleRow {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 0 8px 8px;
+    }
+
+    #qualityLabel {
+      font: var(--md-sys-typescale-body-large-font);
+      color: var(--md-sys-color-on-surface);
     }
 
     .vertical-list {
