@@ -843,7 +843,7 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
 
     const isSelected = this.selectedIed === ied.element && !this.editMode;
     const backgroundRect = isSelected
-      ? svg`<rect width="1" height="1" fill="yellow" pointer-events="none" />`
+      ? svg`<rect width="1" height="1" fill="#ffcc00" pointer-events="none" />`
       : nothing;
 
     let handleClick: (() => void) | symbol = nothing;
@@ -1357,8 +1357,8 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
   static styles = css`
     #container {
       width: 100%;
-      height: 80vh;
-      overflow: scroll;
+      height: 100%;
+      overflow: auto;
       background-color: white;
     }
 
@@ -1379,7 +1379,7 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
     }
 
     svg.connection:hover > path {
-      stroke: black;
+      stroke: #ffcc00;
       stroke-width: 0.12;
     }
 
@@ -1399,17 +1399,17 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
     }
 
     .filter.box > mwc-textfield {
-      padding: 10px;
+      padding: 6px;
     }
 
     .filter.box {
       width: 300px;
       height: auto; /* intrinsic */
       max-height: 80vh; /* fallback */
-      max-height: calc(100dvh - 20px); /* dynamic viewport */
+      max-height: calc(100dvh - 20vh); /* dynamic viewport */
       position: fixed;
-      bottom: 5px;
-      right: 5px;
+      bottom: 6px;
+      right: 16px;
       border: 2px solid var(--oscd-theme-base01);
       background-color: var(--oscd-theme-base3);
       border-radius: 5px;
@@ -1447,15 +1447,18 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
     .md-filter-group {
       margin: 8px 10px;
     }
+
     .md-filter-group md-list {
       max-height: 150px;
       overflow: auto;
       border: 1px solid var(--oscd-theme-base01);
       border-radius: 4px;
     }
+
     .md-filter-group md-list-item {
       cursor: pointer;
     }
+
     .md-filter-group md-list-item.type-item span {
       font-size: 0.9em;
       opacity: 0.9;
