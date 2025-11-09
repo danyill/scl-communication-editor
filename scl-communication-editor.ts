@@ -412,6 +412,7 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
       this.cachedConnections = this.substation
         ? [...clientLnConnections(this.substation.ownerDocument)]
         : [];
+      this.selectedConnection = undefined;
     }
   }
 
