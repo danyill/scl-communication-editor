@@ -111,7 +111,8 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
 
   @state() priorityFilter = '';
 
-  @state() selectedVlans: string[] = [];
+  @state({ hasChanged: (v, o) => v !== o })
+  selectedVlans: string[] = [];
 
   @state() selectedPriorities: string[] = [];
 
@@ -595,7 +596,7 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
     )
       return false;
 
-    const comm = getCommAddress(conn.source.controlBlock).querySelector(
+    const comm = getCommAddress(conn.source.controlBlock)?.querySelector(
       'Address'
     );
     const vlanRaw =
@@ -627,7 +628,7 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
     )
       return false;
 
-    const comm = getCommAddress(conn.source.controlBlock).querySelector(
+    const comm = getCommAddress(conn.source.controlBlock)?.querySelector(
       'Address'
     );
     const prioRaw =
@@ -732,6 +733,12 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
 
   resetIedSelection(): void {
     this.selectedIed = undefined;
+    // if an IED is deselected and set to show nothing then don't allow
+    // nothing for when there is next an IED selected.
+    if (this.filterRcv === true && this.filterSend === true) {
+      this.filterRcv = false;
+      this.filterSend = false;
+    }
     this.linkedEquipments = [];
   }
 
@@ -978,12 +985,9 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
     this.recomputeSelectedManufacturers();
   }
 
-  updated(changed: PropertyValues) {
-    super.updated(changed);
-    if (changed.has('connections') || changed.has('substation')) {
-      this.computeVlanPriorityValues();
-      this.computeManufacturerTypeValues();
-    }
+  firstUpdated() {
+    this.computeVlanPriorityValues();
+    this.computeManufacturerTypeValues();
   }
 
   private toggleVlanExpanded() {

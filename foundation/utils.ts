@@ -202,7 +202,7 @@ export function crossProduct<T>(...arrays: T[][]): T[][] {
   );
 }
 
-export function getCommAddress(ctrlBlock: Element): Element {
+export function getCommAddress(ctrlBlock: Element): Element | null {
   const doc = ctrlBlock.ownerDocument;
 
   const ctrlLdInst = ctrlBlock.closest('LDevice')!.getAttribute('inst');
@@ -234,5 +234,5 @@ export function getCommAddress(ctrlBlock: Element): Element {
     crossProduct([connectedAps], connectedApNames, ['>'], [addressElement])
       .map(strings => strings.join(''))
       .join(',')
-  )!;
+  );
 }
