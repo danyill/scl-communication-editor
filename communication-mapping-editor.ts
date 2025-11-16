@@ -965,7 +965,11 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
     <g class="ied ${isSelected ? 'selected-ied' : ''}"
       id="#${ied.name}"
       transform="translate(${0} ${0})">
-        <title>${ied.name}</title>
+        <title>${ied.name}
+${ied.ied.getAttribute('manufacturer') || 'Unknown manufacturer'} ${
+      ied.ied.getAttribute('type') || 'Unknown type'
+    }
+        </title>
         ${backgroundRect}
         ${icon}
         <rect width="1" height="1" fill="none" pointer-events="all"
