@@ -136,7 +136,7 @@ function clientLnConnections(doc: XMLDocument): Connection[] {
     );
 }
 
-function parseExtRefs(doc: XMLDocument): Connection[] {
+function parseExtRefsOld(doc: XMLDocument): Connection[] {
   const iedToNameElement = new Map<string, Element>();
   Array.from(doc.getElementsByTagNameNS(sldNs, 'IEDName')).forEach(iedName =>
     iedToNameElement.set(iedName.getAttributeNS(sldNs, 'name')!, iedName)
@@ -222,6 +222,144 @@ function parseExtRefs(doc: XMLDocument): Connection[] {
         target: { ied: Element };
       } => conn.source.iedName !== null && conn.source.iedName !== null
     );
+}
+
+// Performance-optimized variant of parseExtRefs.
+// Strategy:
+// 1. Build a single map of IEDName elements (as original).
+// 2. Index all ExtRef elements by composite key (source IED name | LN class | CB name).
+// 3. Iterate control blocks and perform O(1) lookup + light filtering (ldInst/prefix/lnInst).
+// 4. Group target ExtRefs per target IED.
+// This avoids constructing and executing a full-document selector per control block.
+interface IndexedExtRefEntry {
+  el: Element;
+  targetIed: Element;
+  targetIedName: Element;
+  srcLDInst?: string; // ExtRef[srcLDInst]
+  ldInst?: string; // ExtRef[ldInst]
+  srcPrefix: string; // ExtRef[srcPrefix] or ''
+  srcLNInst: string; // ExtRef[srcLNInst] or ''
+}
+
+function buildIedNameMap(doc: XMLDocument): Map<string, Element> {
+  const map = new Map<string, Element>();
+  Array.from(doc.getElementsByTagNameNS(sldNs, 'IEDName')).forEach(iedName => {
+    const n = iedName.getAttributeNS(sldNs, 'name');
+    if (n) map.set(n, iedName);
+  });
+  return map;
+}
+
+function indexAllExtRefs(
+  doc: XMLDocument,
+  iedNameMap: Map<string, Element>
+): Map<string, IndexedExtRefEntry[]> {
+  const byKey = new Map<string, IndexedExtRefEntry[]>();
+  // Select ExtRefs that specify a srcCBName; both LN0 and LN contexts.
+  const extRefs = doc.querySelectorAll(
+    ':root > IED > AccessPoint > Server > LDevice > LN0 > Inputs > ExtRef[srcCBName], ' +
+      ':root > IED > AccessPoint > Server > LDevice > LN > Inputs > ExtRef[srcCBName]'
+  );
+  extRefs.forEach(extRef => {
+    const keyIed = extRef.getAttribute('iedName');
+    const cbName = extRef.getAttribute('srcCBName');
+    const lnClass = extRef.getAttribute('srcLNClass');
+    if (!keyIed || !cbName || !lnClass) return; // skip incomplete keys
+    const targetIed = extRef.closest('IED');
+    if (!targetIed) return;
+    const targetName = targetIed.getAttribute('name');
+    if (!targetName) return;
+    const targetIedNameEl = iedNameMap.get(targetName);
+    if (!targetIedNameEl) return;
+
+    const entry: IndexedExtRefEntry = {
+      el: extRef,
+      targetIed,
+      targetIedName: targetIedNameEl,
+      srcLDInst: extRef.getAttribute('srcLDInst') || undefined,
+      ldInst: extRef.getAttribute('ldInst') || undefined,
+      srcPrefix: extRef.getAttribute('srcPrefix') || '',
+      srcLNInst: extRef.getAttribute('srcLNInst') || '',
+    };
+    const key = `${keyIed}|${lnClass}|${cbName}`;
+    const bucket = byKey.get(key);
+    if (bucket) bucket.push(entry);
+    else byKey.set(key, [entry]);
+  });
+  return byKey;
+}
+
+export function parseExtRefs(doc: XMLDocument): Connection[] {
+  const iedNameMap = buildIedNameMap(doc);
+  const extRefIndex = indexAllExtRefs(doc, iedNameMap);
+
+  // Control blocks limited to LN0 (GSEControl/SampledValueControl) per IEC conventions.
+  const controlBlocks = doc.querySelectorAll(
+    ':root > IED > AccessPoint > Server > LDevice > LN0 > GSEControl, ' +
+      ':root > IED > AccessPoint > Server > LDevice > LN0 > SampledValueControl'
+  );
+
+  const results: Connection[] = [];
+
+  controlBlocks.forEach(controlBlock => {
+    const srcIed = controlBlock.closest('IED');
+    if (!srcIed) return;
+    const sourceIedNameStr = srcIed.getAttribute('name');
+    if (!sourceIedNameStr) return;
+    const sourceIedNameEl = iedNameMap.get(sourceIedNameStr);
+    if (!sourceIedNameEl) return;
+
+    const ldInst = controlBlock.closest('LDevice')?.getAttribute('inst') || '';
+    const ln0 = controlBlock.closest('LN0,LN');
+    if (!ln0) return;
+    const prefix = ln0.getAttribute('prefix') || '';
+    const lnClass = ln0.getAttribute('lnClass') || '';
+    const lnInst = ln0.getAttribute('inst') || '';
+    const cbName = controlBlock.getAttribute('name');
+    if (!cbName) return;
+
+    const key = `${sourceIedNameStr}|${lnClass}|${cbName}`;
+    const candidates = extRefIndex.get(key);
+    if (!candidates) return; // no matches for this CB
+
+    // Filter by LD/prefix/instance equivalence rules.
+    const filtered = candidates.filter(ext => {
+      const ldMatch = ext.srcLDInst
+        ? ext.srcLDInst === ldInst
+        : ext.ldInst === ldInst;
+      return ldMatch && ext.srcPrefix === prefix && ext.srcLNInst === lnInst;
+    });
+    if (!filtered.length) return;
+
+    // Group by target IED name.
+    const grouped: Record<
+      string,
+      { ied: Element; iedName: Element; inputs: Element[] }
+    > = {};
+    for (const ext of filtered) {
+      const tgtName = ext.targetIed.getAttribute('name');
+      if (tgtName) {
+        if (grouped[tgtName]) grouped[tgtName].inputs.push(ext.el);
+        else
+          grouped[tgtName] = {
+            ied: ext.targetIed,
+            iedName: ext.targetIedName,
+            inputs: [ext.el],
+          };
+      }
+    }
+
+    Object.values(grouped).forEach(target => {
+      const id = `${identity(controlBlock)}:${target.ied.getAttribute('name')}`;
+      results.push({
+        id,
+        source: { ied: srcIed, iedName: sourceIedNameEl, controlBlock },
+        target,
+      });
+    });
+  });
+
+  return results;
 }
 
 function connectionHeading(conn: Connection): string {
