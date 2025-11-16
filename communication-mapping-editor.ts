@@ -358,9 +358,28 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
     }
   }
 
-  // Remove dragging class from any IED group that may still have it
+  private updateDraggingLabelVisual(): void {
+    if (!this.placingLabel) return;
+    const labelElement = this.placingLabel;
+    const name = labelElement.getAttributeNS(sldNs, 'name');
+    if (!name) return;
+    const labelGroup = this.sld.querySelector(
+      `g[id="label:${name}"]`
+    ) as SVGGElement | null;
+    if (!labelGroup) return;
+    const [lx, ly] = this.renderedLabelPosition(labelElement);
+    const textEl = labelGroup.querySelector('text') as SVGTextElement | null;
+    if (textEl) {
+      textEl.setAttribute('x', String(lx + 0.1));
+      textEl.setAttribute('y', String(ly - 0.5));
+    }
+    labelGroup.setAttribute(
+      'transform',
+      `rotate(${0} ${lx + 0.5} ${ly - 0.5})`
+    );
+  }
+
   private clearDraggingState(): void {
-    // Prefer clearing only the IED currently being placed
     if (this.isPlacingIED) {
       const placingElement = this.placing!;
       const ied = this.ieds.find(i => i.element === placingElement);
@@ -862,11 +881,15 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
 
     const fontSize = 0.45;
     let events = 'none';
-    let handleClick: (() => void) | symbol = nothing;
+    let handleClick: ((evt: MouseEvent) => void) | symbol = nothing;
     if (this.idle && this.editMode) {
       events = 'all';
-      const offset = [this.mouseX2 - x - 0.5, this.mouseY2 - y + 0.5] as Point;
-      handleClick = () => this.startPlacingLabel(ied.element, offset);
+      handleClick = (evt: MouseEvent) => {
+        evt.stopPropagation();
+        const [mx, my] = this.svgCoordinates(evt.clientX, evt.clientY);
+        const offset = [mx - x - 0.5, my - y + 0.5] as Point;
+        this.startPlacingLabel(ied.element, offset);
+      };
     }
     const id = ied.name;
     const classes = classMap({
@@ -1416,8 +1439,8 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
             this.mouseY = Math.floor(y);
             this.mouseX2 = Math.round(x * 2) / 2;
             this.mouseY2 = Math.round(y * 2) / 2;
-            // Update only the dragged IED's DOM position imperatively.
             this.updateDraggingIedVisual();
+            this.updateDraggingLabelVisual();
           }}
         >
           ${sldSvg(this.substation, {
