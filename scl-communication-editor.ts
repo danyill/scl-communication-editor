@@ -408,9 +408,13 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
 
   protected updated(changedProperties: PropertyValues): void {
     super.updated(changedProperties);
-
-    // When a new document is loaded we reset the connections
-    if (changedProperties.has('doc')) {
+    // When a new document is loaded or a connection is removed
+    // We update the cached variables
+    if (
+      changedProperties.has('doc') ||
+      changedProperties.has('docName') ||
+      changedProperties.has('editCount')
+    ) {
       this.parsedExtRefs = this.substation
         ? parseExtRefs(this.substation.ownerDocument)
         : [];

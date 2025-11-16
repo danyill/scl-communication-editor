@@ -985,6 +985,14 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
     this.recomputeSelectedManufacturers();
   }
 
+  protected updated(changedProperties: PropertyValues): void {
+    super.updated(changedProperties);
+
+    if (changedProperties.has('substation')) {
+      this.selectedIed = undefined;
+    }
+  }
+
   firstUpdated() {
     this.computeVlanPriorityValues();
     this.computeManufacturerTypeValues();
