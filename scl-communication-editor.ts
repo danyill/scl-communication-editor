@@ -412,8 +412,9 @@ export default class SldCommunicationEditor extends ScopedElementsMixin(
     // We update the cached variables
     if (
       changedProperties.has('doc') ||
-      changedProperties.has('docName') ||
-      changedProperties.has('editCount')
+      changedProperties.has('docName')
+      // ||
+      // changedProperties.has('editCount')
     ) {
       this.parsedExtRefs = this.substation
         ? parseExtRefs(this.substation.ownerDocument)

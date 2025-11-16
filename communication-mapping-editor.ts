@@ -67,26 +67,31 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
   @property({ attribute: false, hasChanged: (v, o) => v !== o })
   connections: Connection[] = [];
 
-  @state()
-  get ieds(): IED[] {
-    return Array.from(
+  @state() private ieds: (IED & { ied: Element })[] = [];
+
+  private computeIeds(): void {
+    if (!this.substation) {
+      this.ieds = [];
+      return;
+    }
+    const iedNames = Array.from(
       this.substation.ownerDocument.getElementsByTagNameNS(sldNs, 'IEDName')
     )
       .map(iedName => {
+        const rawName = iedName.getAttributeNS(sldNs, 'name') ?? 'Unknown IED';
         const ied = this.substation.ownerDocument.querySelector(
-          `:scope > IED[name="${
-            iedName.getAttributeNS(sldNs, 'name') ?? 'Unknown IED'
-          }"]`
+          `:scope > IED[name="${rawName}"]`
         );
         return {
           element: iedName,
           ied,
-          name: iedName.getAttributeNS(sldNs, 'name')!,
+          name: rawName,
         };
       })
       .filter(
         (iedName): iedName is IED & { ied: Element } => iedName.ied !== null
       );
+    this.ieds = iedNames;
   }
 
   @state() filterReport = false;
@@ -169,6 +174,12 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
 
   @query('#container') container!: HTMLDivElement;
 
+  constructor() {
+    super();
+    this.computeIeds();
+    this.addEventListener('wheel', this.onWheelZoom);
+  }
+
   svgCoordinates(clientX: number, clientY: number) {
     const p = new DOMPoint(clientX, clientY);
     const { x, y } = p.matrixTransform(this.sld.getScreenCTM()!.inverse());
@@ -220,16 +231,17 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
 
     const oldParent = element.parentElement;
 
-    const newParent =
+    const newParent = (
       Array.from(
         this.substation.querySelectorAll(':scope > VoltageLevel > Bay')
       )
         .concat(
           Array.from(this.substation.querySelectorAll(':scope > VoltageLevel'))
         )
-        .find(vlOrBay => containsRect(vlOrBay, x, y, 1, 1)) || this.substation;
+        .find(vlOrBay => containsRect(vlOrBay, x, y, 1, 1)) || this.substation
+    ).querySelector(':scope > Private[type="OpenSCD-Linked-IEDs"]');
 
-    if (element.parentElement !== newParent) {
+    if (element.parentElement !== newParent && newParent !== null) {
       edits.push(...reparentElement(element, newParent));
     }
 
@@ -273,20 +285,18 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
           'Private'
         );
         privateElement.setAttribute('type', 'OpenSCD-Linked-IEDs');
+        privateElement.appendChild(element.cloneNode());
+        enclosingEdits.push(
+          {
+            parent: element.parentElement!,
+            node: privateElement,
+            reference: getReference(element.parentElement!, 'Private'),
+          },
+          {
+            node: element,
+          }
+        );
       }
-
-      privateElement.appendChild(element.cloneNode());
-
-      enclosingEdits.push(
-        {
-          parent: element.parentElement!,
-          node: privateElement,
-          reference: getReference(element.parentElement!, 'Private'),
-        },
-        {
-          node: element,
-        }
-      );
     }
 
     if (
@@ -309,17 +319,14 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
     this.placingOffset = offset;
   }
 
-  // Helper: are we currently dragging (placing) an IED symbol?
   private get isPlacingIED(): boolean {
     return !!this.placing && this.placing.localName === 'IEDName';
   }
 
-  // Imperatively update the visual position of the IED being placed without triggering
-  // a full Lit re-render (avoids recomputing connections and filters).
   private updateDraggingIedVisual(): void {
     if (!this.isPlacingIED) return;
     const placingElement = this.placing!; // IEDName element
-    // Find the IED object to obtain the identity used as the SVG id.
+
     const iedObj = this.ieds.find(i => i.element === placingElement);
     if (!iedObj) return;
     const idStr = iedObj.name;
@@ -327,31 +334,27 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
       `svg[id="${idStr}"]`
     );
     if (!topSvg) return;
-    // Compute transient position based on current mouse coordinates using existing helper.
+
     const [tx, ty] = this.renderedPosition(placingElement);
-    // Apply x / y directly; this only changes DOM, not underlying data model yet.
+
     topSvg.setAttribute('x', String(tx));
     topSvg.setAttribute('y', String(ty));
-    // Mark dragging state for styling.
+
     const g = topSvg.querySelector('g.ied');
     if (g && !g.classList.contains('dragging')) g.classList.add('dragging');
 
-    // Also move the associated label imperatively while dragging
-    const labelGroup = this.sld.querySelector(
+    // Move the associated label imperatively while dragging
+    const label = this.sld.querySelector(
       `g[id="label:${idStr}"]`
     ) as SVGGElement | null;
-    if (labelGroup) {
+    if (label) {
       const [lx, ly] = this.renderedLabelPosition(placingElement);
-      const textEl = labelGroup.querySelector('text') as SVGTextElement | null;
+      const textEl = label.querySelector('text') as SVGTextElement | null;
       if (textEl) {
         textEl.setAttribute('x', String(lx + 0.1));
         textEl.setAttribute('y', String(ly - 0.5));
       }
-      // Keep transform anchor consistent (deg is 0, but set for completeness)
-      labelGroup.setAttribute(
-        'transform',
-        `rotate(${0} ${lx + 0.5} ${ly - 0.5})`
-      );
+      label.setAttribute('transform', `rotate(${0} ${lx + 0.5} ${ly - 0.5})`);
     }
   }
 
@@ -823,12 +826,6 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
     } else this.resetIedSelection();
   }
 
-  constructor() {
-    super();
-
-    this.addEventListener('wheel', this.onWheelZoom);
-  }
-
   renderedLabelPosition(element: Element): Point {
     let {
       label: [x, y],
@@ -1059,10 +1056,12 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
 
     if (changedProperties.has('substation')) {
       this.selectedIed = undefined;
+      this.computeIeds();
     }
   }
 
   firstUpdated() {
+    this.computeIeds();
     this.computeVlanPriorityValues();
     this.computeManufacturerTypeValues();
   }
