@@ -81,7 +81,7 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
         return {
           element: iedName,
           ied,
-          name: iedName.getAttribute('name')!,
+          name: iedName.getAttributeNS(sldNs, 'name')!,
         };
       })
       .filter(
@@ -190,6 +190,8 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
   }
 
   reset() {
+    // Clear any transient dragging visuals
+    this.clearDraggingState();
     this.placing = undefined;
     this.placingLabel = undefined;
   }
@@ -305,6 +307,73 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
     this.reset();
     this.placing = element;
     this.placingOffset = offset;
+  }
+
+  // Helper: are we currently dragging (placing) an IED symbol?
+  private get isPlacingIED(): boolean {
+    return !!this.placing && this.placing.localName === 'IEDName';
+  }
+
+  // Imperatively update the visual position of the IED being placed without triggering
+  // a full Lit re-render (avoids recomputing connections and filters).
+  private updateDraggingIedVisual(): void {
+    if (!this.isPlacingIED) return;
+    const placingElement = this.placing!; // IEDName element
+    // Find the IED object to obtain the identity used as the SVG id.
+    const iedObj = this.ieds.find(i => i.element === placingElement);
+    if (!iedObj) return;
+    const idStr = iedObj.name;
+    const topSvg: SVGElement | null = this.sld.querySelector(
+      `svg[id="${idStr}"]`
+    );
+    if (!topSvg) return;
+    // Compute transient position based on current mouse coordinates using existing helper.
+    const [tx, ty] = this.renderedPosition(placingElement);
+    // Apply x / y directly; this only changes DOM, not underlying data model yet.
+    topSvg.setAttribute('x', String(tx));
+    topSvg.setAttribute('y', String(ty));
+    // Mark dragging state for styling.
+    const g = topSvg.querySelector('g.ied');
+    if (g && !g.classList.contains('dragging')) g.classList.add('dragging');
+
+    // Also move the associated label imperatively while dragging
+    const labelGroup = this.sld.querySelector(
+      `g[id="label:${idStr}"]`
+    ) as SVGGElement | null;
+    if (labelGroup) {
+      const [lx, ly] = this.renderedLabelPosition(placingElement);
+      const textEl = labelGroup.querySelector('text') as SVGTextElement | null;
+      if (textEl) {
+        textEl.setAttribute('x', String(lx + 0.1));
+        textEl.setAttribute('y', String(ly - 0.5));
+      }
+      // Keep transform anchor consistent (deg is 0, but set for completeness)
+      labelGroup.setAttribute(
+        'transform',
+        `rotate(${0} ${lx + 0.5} ${ly - 0.5})`
+      );
+    }
+  }
+
+  // Remove dragging class from any IED group that may still have it
+  private clearDraggingState(): void {
+    // Prefer clearing only the IED currently being placed
+    if (this.isPlacingIED) {
+      const placingElement = this.placing!;
+      const ied = this.ieds.find(i => i.element === placingElement);
+      if (ied) {
+        const idStr = ied.name;
+        const topSvg: SVGElement | null = this.sld.querySelector(
+          `svg[id="${idStr}"]`
+        );
+        const g = topSvg?.querySelector('g.ied');
+        if (g?.classList.contains('dragging')) g.classList.remove('dragging');
+        return;
+      }
+    }
+    // Fallback: if we couldn't resolve the specific IED, clear any leftovers
+    const draggingGroups = this.sld?.querySelectorAll('g.ied.dragging') ?? [];
+    draggingGroups.forEach(g => g.classList.remove('dragging'));
   }
 
   onWheelZoom(evt: WheelEvent): void {
@@ -802,7 +871,7 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
       const offset = [this.mouseX2 - x - 0.5, this.mouseY2 - y + 0.5] as Point;
       handleClick = () => this.startPlacingLabel(ied.element, offset);
     }
-    const id = identity(ied.ied);
+    const id = ied.name;
     const classes = classMap({
       label: true,
       ied: true,
@@ -866,7 +935,7 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
     return svg`<svg
     xmlns="${svgNs}"
     xmlns:xlink="${xlinkNs}"
-    id="${identity(ied.ied)}"
+    id="${ied.name}"
     x="${x}"
     y="${y}"
     width="${1 * this.gridSize}"
@@ -1348,6 +1417,8 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
             this.mouseY = Math.floor(y);
             this.mouseX2 = Math.round(x * 2) / 2;
             this.mouseY2 = Math.round(y * 2) / 2;
+            // Update only the dragged IED's DOM position imperatively.
+            this.updateDraggingIedVisual();
           }}
         >
           ${sldSvg(this.substation, {
@@ -1390,6 +1461,13 @@ export class CommunicationMappingEditor extends ScopedElementsMixin(
     svg.connection:hover > path {
       stroke: #ffcc00;
       stroke-width: 0.12;
+    }
+
+    /* Visual feedback while dragging an IED (imperative update) */
+    g.ied.dragging > rect,
+    g.ied.dragging use {
+      opacity: 0.75;
+      cursor: grabbing;
     }
 
     .info-box {
